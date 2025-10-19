@@ -1,12 +1,15 @@
-export default function Dashboard() {
+interface PagePlaceholderProps {
+  title: string;
+  description: string;
+}
+
+export default function PagePlaceholder({ title, description }: PagePlaceholderProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-[var(--text-primary)]">Dashboard</h1>
-        <p className="text-[var(--text-secondary)] mt-2">
-          Resumen general del estado de MediSupply
-        </p>
+        <h1 className="text-3xl font-bold text-[var(--text-primary)]">{title}</h1>
+        <p className="text-[var(--text-secondary)] mt-2">{description}</p>
       </div>
 
       {/* Content placeholder */}
@@ -19,7 +22,7 @@ export default function Dashboard() {
             Página en construcción
           </h2>
           <p className="text-[var(--text-secondary)] max-w-md">
-            Esta página está siendo desarrollada. Próximamente tendrás acceso a todas las funcionalidades del dashboard.
+            Esta página está siendo desarrollada. Próximamente tendrás acceso a todas las funcionalidades de {title.toLowerCase()}.
           </p>
         </div>
       </div>
