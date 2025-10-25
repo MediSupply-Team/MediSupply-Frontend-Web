@@ -3,64 +3,61 @@ name: CI - Web
 on:
   pull_request:
     branches: [develop]
-    
   push:
     branches: [develop]
 
 jobs:
-  CI__web:
+  CI_web:
     runs-on: ubuntu-latest
 
     steps:
-      # 1) Descargar el código del repositorio
-      - name: Download code
+      # 1) Descargar el código
+      - name: Checkout
         uses: actions/checkout@v4
 
-      # 2) Configurar Node.js (misma versión que RN para consistencia)
-      - name: Setup Node.js
+      # 2) Node.js + caché npm
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20.19.4'
+          node-version: '20'
           cache: 'npm'
-          
 
       # 3) Instalar dependencias
-      - name: Install dependencies
+      - name: Install deps
         run: npm ci --no-audit --no-fund
 
-      # 4) (Opcional) Lint rápido
-      - name: Run Lint
+      # 4) (Opcional) Lint / Build
+      - name: Lint
         run: npm run lint --if-present
-
-      # 5) (Opcional) Build de la app (útil si usas pruebas component o sirves build)
-      - name: Build app
+      - name: Build (optional)
         run: npm run build --if-present
 
-      # 6) E2E con Cypress (simple)
+      # 5) E2E con Cypress (Next en 3000)
       - name: Cypress E2E
         uses: cypress-io/github-action@v6
         with:
-          install: false              # ya hicimos npm ci
-          start: npm run dev          # cambia a "npm start" si usas CRA/Next
+          install: false          # ya hicimos npm ci
+          start: npm run dev      # o "npm start" si usas next start
           wait-on: http://localhost:3000
+          wait-on-timeout: 180
           browser: chrome
 
-      # 7) Subir artefactos de Cypress (solo si existen)
+      # 6) Artefactos de Cypress
       - name: Upload Cypress artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: cypress-artifacts
           path: |
-            -web/cypress/screenshots
-            -web/cypress/videos
+            cypress/screenshots
+            cypress/videos
           if-no-files-found: ignore
 
-      # 8) (Opcional) Cobertura si la generas
+      # 7) (Opcional) Cobertura si la generas (con @cypress/code-coverage o Jest)
       - name: Upload coverage
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: coverage
-          path: -web/coverage
+          path: coverage
           if-no-files-found: ignore
