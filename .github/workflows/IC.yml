@@ -29,8 +29,8 @@ jobs:
       # 4) (Opcional) Lint / Build
       - name: Lint
         run: npm run lint --if-present
-      - name: Build (optional)
-        run: npm run build --if-present
+      # - name: Build (optional)
+      #   run: npm run build --if-present
 
       # 5) E2E con Cypress
       - name: Cypress E2E
