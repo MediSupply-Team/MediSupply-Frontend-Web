@@ -6,7 +6,9 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "cy:run": "cypress run --browser chrome",
+    "cy:open": "cypress open"
   },
   "dependencies": {
     "next": "15.5.4",

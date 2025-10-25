@@ -32,15 +32,16 @@ jobs:
       - name: Build (optional)
         run: npm run build --if-present
 
-      # 5) E2E con Cypress (Next en 3000)
+      # 5) E2E con Cypress
       - name: Cypress E2E
         uses: cypress-io/github-action@v6
         with:
-          install: false          # ya hicimos npm ci
-          start: npm run dev      # o "npm start" si usas next start
+          install: false
+          start: npm run dev
           wait-on: http://localhost:3000
           wait-on-timeout: 180
           browser: chrome
+          config-file: cypress.config.ts  # 👈 asegura que lea el archivo correcto
 
       # 6) Artefactos de Cypress
       - name: Upload Cypress artifacts
