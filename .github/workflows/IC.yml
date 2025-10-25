@@ -8,7 +8,7 @@ on:
     branches: [develop]
 
 jobs:
-  CI_clientes_web:
+  CI__web:
     runs-on: ubuntu-latest
 
     steps:
@@ -42,7 +42,7 @@ jobs:
         with:
           install: false              # ya hicimos npm ci
           start: npm run dev          # cambia a "npm start" si usas CRA/Next
-          wait-on: http://localhost:5173
+          wait-on: http://localhost:3000
           browser: chrome
 
       # 7) Subir artefactos de Cypress (solo si existen)
@@ -52,8 +52,8 @@ jobs:
         with:
           name: cypress-artifacts
           path: |
-            clientes-web/cypress/screenshots
-            clientes-web/cypress/videos
+            -web/cypress/screenshots
+            -web/cypress/videos
           if-no-files-found: ignore
 
       # 8) (Opcional) Cobertura si la generas
@@ -62,5 +62,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage
-          path: clientes-web/coverage
+          path: -web/coverage
           if-no-files-found: ignore
