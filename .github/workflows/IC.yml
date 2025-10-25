@@ -2,9 +2,9 @@ name: CI - Web
 
 on:
   pull_request:
-    branches: [develop]
+    branches: [develop,IC]
   push:
-    branches: [develop]
+    branches: [develop,IC]
 
 jobs:
   CI_web:
