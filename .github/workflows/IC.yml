@@ -1,0 +1,64 @@
+name: CI - Web
+
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop]
+
+jobs:
+  CI_web:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1) Descargar el código
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2) Node.js + caché npm
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # 3) Instalar dependencias
+      - name: Install deps
+        run: npm ci --no-audit --no-fund
+
+      # 4) (Opcional) Lint / Build
+      - name: Lint
+        run: npm run lint
+      # - name: Build (optional)
+      #   run: npm run build --if-present
+
+      # 5) E2E con Cypress
+      - name: Cypress E2E
+        uses: cypress-io/github-action@v6
+        with:
+          install: false
+          start: npm run dev
+          wait-on: http://localhost:3000
+          wait-on-timeout: 180
+          browser: chrome
+          config-file: cypress.config.ts  # 👈 asegura que lea el archivo correcto
+
+      # 6) Artefactos de Cypress
+      - name: Upload Cypress artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-artifacts
+          path: |
+            cypress/screenshots
+            cypress/videos
+          if-no-files-found: ignore
+
+      # 7) (Opcional) Cobertura si la generas (con @cypress/code-coverage o Jest)
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage
+          if-no-files-found: ignore
