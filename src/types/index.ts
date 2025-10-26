@@ -82,7 +82,52 @@ export interface MovimientoInventario {
   usuario: string;
 }
 
-// === TIPOS DE RUTAS ===
+// === TIPOS DE REPORTES Y VENDEDORES ===
+export interface Vendedor {
+  id: string;
+  nombre: string;
+  email: string;
+  telefono: string;
+  territorio: string;
+  fechaIngreso: string;
+  estado: 'activo' | 'inactivo';
+  metaMensual: number;
+  ventasActuales: number;
+}
+
+export interface VentaVendedor {
+  id: string;
+  vendedorId: string;
+  vendedor: string;
+  producto: string;
+  cantidad: number;
+  ingresos: number;
+  estado: 'completado' | 'pendiente' | 'cancelado';
+  fecha: string;
+}
+
+export interface EstadisticasVentas {
+  ventasTotales: number;
+  pedidosPendientes: number;
+  productosEnStock: number;
+  rendimientoVentas: {
+    porcentaje: number;
+    comparacionAnterior: number;
+  };
+}
+
+export interface DatosGrafico {
+  puntos: { x: number; y: number }[];
+  porcentajes: { producto: string; porcentaje: number; color: string }[];
+}
+
+export interface FiltrosReportes {
+  fechaInicio?: string;
+  fechaFin?: string;
+  vendedorId?: string;
+  producto?: string;
+  estado?: string;
+}
 export interface Ruta {
   id: string;
   nombre: string;
