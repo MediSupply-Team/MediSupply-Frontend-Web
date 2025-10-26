@@ -1,12 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useProductos } from '@/hooks/useProductos';
 import { useNotifications } from '@/store/appStore';
 import type { FiltrosInventario } from '@/types';
 
 export default function ProductosPage() {
   // === ESTADO LOCAL ===
+  const router = useRouter();
   const [filtros, setFiltros] = useState<FiltrosInventario>({
     busqueda: '',
     categoria: 'Todas las categorías',
@@ -89,11 +91,7 @@ export default function ProductosPage() {
           </div>
           <div className="flex gap-3">
             <button 
-              onClick={() => addNotification({
-                tipo: 'info',
-                titulo: 'Función en desarrollo',
-                mensaje: 'La función de agregar producto estará disponible pronto',
-              })}
+              onClick={() => router.push('/productos/agregar')}
               className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium bg-[var(--accent-color)] text-white hover:opacity-90 transition-colors"
             >
               <span className="material-symbols-outlined text-base">add</span>
