@@ -34,6 +34,24 @@ export interface Medicamento {
   fechaActualizacion: string;
 }
 
+// === TIPOS DE PRODUCTOS ===
+export interface Producto {
+  id: string;
+  nombre: string;
+  sku: string;
+  categoria: string;
+  ubicacion: string;
+  ubicacionDetalle: string;
+  stock: number;
+  unidadMedida: string;
+  estadoStock: 'disponible' | 'stock-bajo' | 'agotado';
+  fechaVencimiento?: string;
+  icono: string;
+  colorIcono: string;
+  fechaCreacion: string;
+  fechaActualizacion: string;
+}
+
 // === TIPOS DE PROVEEDORES ===
 export interface Proveedor {
   id: string;
@@ -106,6 +124,18 @@ export interface FiltrosProductos {
   laboratorio?: string;
   estado?: string;
   stockBajo?: boolean;
+  page?: number;
+  limit?: number;
+}
+
+export interface FiltrosInventario {
+  busqueda?: string;
+  categoria?: string;
+  ubicacion?: string;
+  stockBajo?: boolean;
+  proximoVencer?: boolean;
+  masSolicitados?: boolean;
+  ordenarPor?: 'nombre' | 'stock' | 'actualizacion' | 'ubicacion';
   page?: number;
   limit?: number;
 }
