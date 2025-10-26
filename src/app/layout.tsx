@@ -3,6 +3,7 @@ import { Manrope } from 'next/font/google';
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
+import QueryProvider from "@/components/providers/QueryProvider";
 
 const manrope = Manrope({
   subsets: ['latin'],
@@ -29,17 +30,19 @@ export default function RootLayout({
         />
       </head>
       <body className={`${manrope.variable} font-sans`}>
-        <div className="flex h-screen bg-[var(--background-color)]">
-          <Sidebar />
-          <div className="flex-1 ml-64 flex flex-col">
-            <Header />
-            <main className="flex-1 overflow-y-auto">
-              <div className="p-6">
-                {children}
-              </div> 
-            </main>
+        <QueryProvider>
+          <div className="flex h-screen bg-[var(--background-color)]">
+            <Sidebar />
+            <div className="flex-1 ml-64 flex flex-col">
+              <Header />
+              <main className="flex-1 overflow-y-auto">
+                <div className="p-6">
+                  {children}
+                </div> 
+              </main>
+            </div>
           </div>
-        </div>
+        </QueryProvider>
       </body>
     </html>
   );
