@@ -1,9 +1,8 @@
 import { apiClient } from '@/lib/axios';
 import type { 
   Producto, 
-  ApiResponse, 
-  PaginatedResponse, 
-  FiltrosInventario 
+  FiltrosInventario, 
+  PaginatedResponse
 } from '@/types';
 
 // === DATOS MOCK ===
@@ -12,153 +11,174 @@ const productosMock: Producto[] = [
     id: '1',
     nombre: 'Jeringas Desechables 10ml',
     sku: 'JER-10ML-001',
-    categoria: 'Insumos Descartables',
-    ubicacion: 'Almacén Principal',
-    ubicacionDetalle: 'Pasillo A - Estante 3',
-    stock: 2450,
-    unidadMedida: 'unidades',
+    categoria: 'Instrumental Médico',
+    ubicacion: 'A-1',
+    ubicacionDetalle: 'Estante A, Nivel 1, Posición 15',
+    stock: 250,
+    unidadMedida: 'unidad',
     estadoStock: 'disponible',
-    fechaVencimiento: '2025-08-15',
-    icono: 'medical_services',
-    colorIcono: 'var(--primary-color)',
+    fechaVencimiento: '2025-12-31',
+    icono: 'syringe',
+    colorIcono: '#0ea5a8',
     fechaCreacion: '2024-01-15',
-    fechaActualizacion: '2024-10-20',
+    fechaActualizacion: '2024-10-20'
   },
   {
     id: '2',
     nombre: 'Guantes de Látex Talla M',
     sku: 'GLV-LAT-M-002',
-    categoria: 'Equipos de Protección',
-    ubicacion: 'Almacén Quirófano',
-    ubicacionDetalle: 'Pasillo B - Estante 1',
-    stock: 150,
-    unidadMedida: 'cajas',
+    categoria: 'Protección Personal',
+    ubicacion: 'B-2',
+    ubicacionDetalle: 'Estante B, Nivel 2, Posición 08',
+    stock: 15,
+    unidadMedida: 'caja',
     estadoStock: 'stock-bajo',
-    fechaVencimiento: '2024-12-30',
-    icono: 'healing',
-    colorIcono: 'var(--accent-color)',
+    fechaVencimiento: '2026-06-15',
+    icono: 'medical_services',
+    colorIcono: '#22c55e',
     fechaCreacion: '2024-02-10',
-    fechaActualizacion: '2024-10-18',
+    fechaActualizacion: '2024-10-18'
   },
   {
     id: '3',
-    nombre: 'Paracetamol 500mg',
-    sku: 'PAR-500-003',
-    categoria: 'Medicamentos',
-    ubicacion: 'Bodega Refrigerada',
-    ubicacionDetalle: 'Área C - Nivel 2',
+    nombre: 'Mascarillas N95',
+    sku: 'MAS-N95-003',
+    categoria: 'Protección Personal',
+    ubicacion: 'C-1',
+    ubicacionDetalle: 'Estante C, Nivel 1, Posición 05',
     stock: 0,
-    unidadMedida: 'tabletas',
+    unidadMedida: 'caja',
     estadoStock: 'agotado',
-    fechaVencimiento: undefined,
-    icono: 'medication',
-    colorIcono: 'var(--accent-red)',
-    fechaCreacion: '2024-01-05',
-    fechaActualizacion: '2024-10-15',
+    fechaVencimiento: '2025-08-20',
+    icono: 'masks',
+    colorIcono: '#ef4444',
+    fechaCreacion: '2024-01-20',
+    fechaActualizacion: '2024-10-15'
   },
   {
     id: '4',
-    nombre: 'Mascarillas N95',
-    sku: 'MAS-N95-004',
-    categoria: 'Equipos de Protección',
-    ubicacion: 'Almacén Principal',
-    ubicacionDetalle: 'Pasillo D - Estante 2',
-    stock: 850,
-    unidadMedida: 'unidades',
+    nombre: 'Batas Quirúrgicas Desechables',
+    sku: 'BAT-QUI-004',
+    categoria: 'Vestimenta Médica',
+    ubicacion: 'D-3',
+    ubicacionDetalle: 'Estante D, Nivel 3, Posición 12',
+    stock: 180,
+    unidadMedida: 'unidad',
     estadoStock: 'disponible',
-    fechaVencimiento: '2025-06-20',
-    icono: 'masks',
-    colorIcono: 'var(--primary-color)',
-    fechaCreacion: '2024-03-12',
-    fechaActualizacion: '2024-10-22',
+    fechaVencimiento: '2027-03-10',
+    icono: 'personal_injury',
+    colorIcono: '#0ea5a8',
+    fechaCreacion: '2024-03-05',
+    fechaActualizacion: '2024-10-22'
   },
   {
     id: '5',
-    nombre: 'Termómetro Digital',
-    sku: 'TER-DIG-005',
-    categoria: 'Equipos Médicos',
-    ubicacion: 'Almacén Quirófano',
-    ubicacionDetalle: 'Área E - Estante 1',
-    stock: 25,
-    unidadMedida: 'unidades',
-    estadoStock: 'stock-bajo',
-    fechaVencimiento: '2026-01-15',
-    icono: 'device_thermostat',
-    colorIcono: 'var(--secondary-color)',
-    fechaCreacion: '2024-04-08',
-    fechaActualizacion: '2024-10-19',
+    nombre: 'Alcohol en Gel 500ml',
+    sku: 'ALC-GEL-005',
+    categoria: 'Higiene y Limpieza',
+    ubicacion: 'E-1',
+    ubicacionDetalle: 'Estante E, Nivel 1, Posición 20',
+    stock: 320,
+    unidadMedida: 'frasco',
+    estadoStock: 'disponible',
+    fechaVencimiento: '2025-11-30',
+    icono: 'sanitizer',
+    colorIcono: '#22c55e',
+    fechaCreacion: '2024-02-28',
+    fechaActualizacion: '2024-10-25'
   },
   {
     id: '6',
-    nombre: 'Gasas Estériles 5x5cm',
-    sku: 'GAS-EST-006',
-    categoria: 'Material Quirúrgico',
-    ubicacion: 'Almacén Principal',
-    ubicacionDetalle: 'Pasillo C - Estante 4',
-    stock: 1200,
-    unidadMedida: 'paquetes',
+    nombre: 'Termómetros Digitales',
+    sku: 'TER-DIG-006',
+    categoria: 'Instrumental Médico',
+    ubicacion: 'F-2',
+    ubicacionDetalle: 'Estante F, Nivel 2, Posición 30',
+    stock: 85,
+    unidadMedida: 'unidad',
     estadoStock: 'disponible',
-    fechaVencimiento: '2025-09-10',
-    icono: 'medical_information',
-    colorIcono: 'var(--accent-color)',
-    fechaCreacion: '2024-02-18',
-    fechaActualizacion: '2024-10-21',
+    fechaVencimiento: '2028-01-15',
+    icono: 'device_thermostat',
+    colorIcono: '#0ea5a8',
+    fechaCreacion: '2024-04-10',
+    fechaActualizacion: '2024-10-20'
   },
+  {
+    id: '7',
+    nombre: 'Vendas Elásticas 10cm',
+    sku: 'VEN-ELA-007',
+    categoria: 'Material de Curación',
+    ubicacion: 'G-1',
+    ubicacionDetalle: 'Estante G, Nivel 1, Posición 18',
+    stock: 45,
+    unidadMedida: 'rollo',
+    estadoStock: 'stock-bajo',
+    fechaVencimiento: '2026-09-25',
+    icono: 'healing',
+    colorIcono: '#f59e0b',
+    fechaCreacion: '2024-03-15',
+    fechaActualizacion: '2024-10-19'
+  }
 ];
 
 // === FUNCIONES DE SERVICIO ===
 
 /**
- * Obtener todos los productos con filtros opcionales
+ * Obtener productos con filtros y paginación
  */
 export const getProductos = async (
   filtros?: FiltrosInventario
 ): Promise<PaginatedResponse<Producto>> => {
   try {
-    // En desarrollo, usar datos mock
     if (process.env.NODE_ENV === 'development') {
-      // Simular delay de API
+      // Simular delay de red
       await new Promise(resolve => setTimeout(resolve, 600));
       
       let productosFiltrados = [...productosMock];
       
       // Aplicar filtros
       if (filtros?.busqueda) {
-        const busqueda = filtros.busqueda.toLowerCase();
-        productosFiltrados = productosFiltrados.filter(prod =>
-          prod.nombre.toLowerCase().includes(busqueda) ||
-          prod.sku.toLowerCase().includes(busqueda)
+        const termino = filtros.busqueda.toLowerCase();
+        productosFiltrados = productosFiltrados.filter(producto =>
+          producto.nombre.toLowerCase().includes(termino) ||
+          producto.sku.toLowerCase().includes(termino) ||
+          producto.categoria.toLowerCase().includes(termino)
         );
       }
       
       if (filtros?.categoria && filtros.categoria !== 'Todas las categorías') {
-        productosFiltrados = productosFiltrados.filter(prod =>
-          prod.categoria === filtros.categoria
+        productosFiltrados = productosFiltrados.filter(producto =>
+          producto.categoria === filtros.categoria
         );
       }
       
       if (filtros?.ubicacion && filtros.ubicacion !== 'Ubicación') {
-        productosFiltrados = productosFiltrados.filter(prod =>
-          prod.ubicacion === filtros.ubicacion
+        productosFiltrados = productosFiltrados.filter(producto =>
+          producto.ubicacion === filtros.ubicacion
         );
       }
       
+      // Filtros rápidos
       if (filtros?.stockBajo) {
-        productosFiltrados = productosFiltrados.filter(prod =>
-          prod.estadoStock === 'stock-bajo'
+        productosFiltrados = productosFiltrados.filter(producto =>
+          producto.estadoStock === 'stock-bajo'
         );
       }
       
       if (filtros?.proximoVencer) {
-        // Filtrar productos que vencen en los próximos 30 días
         const fechaLimite = new Date();
-        fechaLimite.setDate(fechaLimite.getDate() + 30);
+        fechaLimite.setMonth(fechaLimite.getMonth() + 3);
         
-        productosFiltrados = productosFiltrados.filter(prod => {
-          if (!prod.fechaVencimiento) return false;
-          const fechaVenc = new Date(prod.fechaVencimiento);
-          return fechaVenc <= fechaLimite;
+        productosFiltrados = productosFiltrados.filter(producto => {
+          if (!producto.fechaVencimiento) return false;
+          const fechaVencimiento = new Date(producto.fechaVencimiento);
+          return fechaVencimiento <= fechaLimite;
         });
+      }
+      
+      if (filtros?.masSolicitados) {
+        // Para el mock, simplemente ordenar por stock descendente
+        productosFiltrados.sort((a, b) => b.stock - a.stock);
       }
       
       // Ordenar
@@ -169,10 +189,10 @@ export const getProductos = async (
               return a.nombre.localeCompare(b.nombre);
             case 'stock':
               return b.stock - a.stock;
-            case 'actualizacion':
-              return new Date(b.fechaActualizacion).getTime() - new Date(a.fechaActualizacion).getTime();
             case 'ubicacion':
               return a.ubicacion.localeCompare(b.ubicacion);
+            case 'actualizacion':
+              return new Date(b.fechaActualizacion).getTime() - new Date(a.fechaActualizacion).getTime();
             default:
               return 0;
           }
@@ -184,10 +204,11 @@ export const getProductos = async (
       const limit = filtros?.limit || 10;
       const startIndex = (page - 1) * limit;
       const endIndex = startIndex + limit;
-      const paginatedData = productosFiltrados.slice(startIndex, endIndex);
+      
+      const paginatedProducts = productosFiltrados.slice(startIndex, endIndex);
       
       return {
-        data: paginatedData,
+        data: paginatedProducts,
         total: productosFiltrados.length,
         page,
         limit,
@@ -195,11 +216,9 @@ export const getProductos = async (
       };
     }
     
-    // Para producción, usar API real
     const response = await apiClient.get<PaginatedResponse<Producto>>('/productos', {
       params: filtros,
     });
-    
     return response.data;
   } catch (error) {
     console.error('Error al obtener productos:', error);
@@ -208,58 +227,86 @@ export const getProductos = async (
 };
 
 /**
- * Obtener un producto por ID
+ * Crear un nuevo producto
  */
-export const getProducto = async (id: string): Promise<Producto> => {
+export const createProducto = async (data: Omit<Producto, 'id' | 'fechaCreacion' | 'fechaActualizacion'>): Promise<Producto> => {
   try {
-    // En desarrollo, usar datos mock
     if (process.env.NODE_ENV === 'development') {
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // Simular delay de red
+      await new Promise(resolve => setTimeout(resolve, 800));
       
-      const producto = productosMock.find(prod => prod.id === id);
-      if (!producto) {
-        throw new Error('Producto no encontrado');
-      }
+      const nuevoProducto: Producto = {
+        ...data,
+        id: Date.now().toString(),
+        fechaCreacion: new Date().toISOString().split('T')[0],
+        fechaActualizacion: new Date().toISOString().split('T')[0],
+      };
       
-      return producto;
+      // En un entorno real, esto se guardaría en la base de datos
+      productosMock.unshift(nuevoProducto);
+      
+      return nuevoProducto;
     }
     
-    // Para producción, usar API real
-    const response = await apiClient.get<ApiResponse<Producto>>(`/productos/${id}`);
-    return response.data.data;
+    const response = await apiClient.post<Producto>('/productos', data);
+    return response.data;
   } catch (error) {
-    console.error('Error al obtener producto:', error);
+    console.error('Error al crear producto:', error);
     throw error;
   }
 };
 
 /**
- * Crear un nuevo producto
+ * Actualizar un producto existente
  */
-export const createProducto = async (
-  producto: Omit<Producto, 'id' | 'fechaCreacion' | 'fechaActualizacion'>
-): Promise<Producto> => {
+export const updateProducto = async (data: Partial<Producto> & { id: string }): Promise<Producto> => {
   try {
-    // En desarrollo, simular creación
     if (process.env.NODE_ENV === 'development') {
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise(resolve => setTimeout(resolve, 600));
       
-      const nuevoProducto: Producto = {
-        ...producto,
-        id: `${Date.now()}`,
-        fechaCreacion: new Date().toISOString(),
-        fechaActualizacion: new Date().toISOString(),
+      const index = productosMock.findIndex(p => p.id === data.id);
+      if (index === -1) {
+        throw new Error('Producto no encontrado');
+      }
+      
+      const productoActualizado: Producto = { 
+        ...productosMock[index], 
+        ...data,
+        fechaActualizacion: new Date().toISOString().split('T')[0]
       };
+      productosMock[index] = productoActualizado;
       
-      productosMock.push(nuevoProducto);
-      return nuevoProducto;
+      return productoActualizado;
     }
     
-    // Para producción, usar API real
-    const response = await apiClient.post<ApiResponse<Producto>>('/productos', producto);
-    return response.data.data;
+    const response = await apiClient.put<Producto>(`/productos/${data.id}`, data);
+    return response.data;
   } catch (error) {
-    console.error('Error al crear producto:', error);
+    console.error('Error al actualizar producto:', error);
+    throw error;
+  }
+};
+
+/**
+ * Eliminar un producto
+ */
+export const deleteProducto = async (id: string): Promise<void> => {
+  try {
+    if (process.env.NODE_ENV === 'development') {
+      await new Promise(resolve => setTimeout(resolve, 400));
+      
+      const index = productosMock.findIndex(p => p.id === id);
+      if (index === -1) {
+        throw new Error('Producto no encontrado');
+      }
+      
+      productosMock.splice(index, 1);
+      return;
+    }
+    
+    await apiClient.delete(`/productos/${id}`);
+  } catch (error) {
+    console.error('Error al eliminar producto:', error);
     throw error;
   }
 };
