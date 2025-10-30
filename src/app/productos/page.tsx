@@ -98,11 +98,7 @@ export default function ProductosPage() {
               <span>Agregar Producto</span>
             </button>
             <button 
-              onClick={() => addNotification({
-                tipo: 'info',
-                titulo: 'Función en desarrollo',
-                mensaje: 'La función de carga masiva estará disponible pronto',
-              })}
+              onClick={() => router.push('/productos/carga-masiva')}
               className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--border-color)]/50 transition-colors"
             >
               <span className="material-symbols-outlined text-base">upload_file</span>
