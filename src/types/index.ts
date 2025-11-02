@@ -226,3 +226,52 @@ export interface Notification {
   fecha: string;
   leida: boolean;
 }
+
+// === TIPOS PARA BACKEND DE PRODUCCIÓN ===
+export interface SalesPerformanceFilters {
+  from: string;  // YYYY-MM-DD
+  to: string;    // YYYY-MM-DD
+  vendor_id?: string;
+  product_id?: string;
+}
+
+export interface SalesPerformanceResponse {
+  filters_applied: {
+    period: {
+      from_: string;
+      to: string;
+    };
+    vendor_id: string | null;
+    product_id: string | null;
+  };
+  summary: {
+    total_sales: number;
+    pending_orders: number;
+    products_in_stock: number;
+    sales_change_pct_vs_prev_period: number;
+  };
+  charts: {
+    trend: Array<{
+      date: string;
+      total: number;
+    }>;
+    top_products: Array<{
+      product_name: string;
+      amount: number;
+    }>;
+    others_amount: number;
+  };
+  table: {
+    rows: Array<{
+      vendor_name: string;
+      product_name: string;
+      quantity: number;
+      revenue: number;
+      status: 'pendiente' | 'completado';
+    }>;
+  };
+  currency: string;
+  export: {
+    available_formats: string[];
+  };
+}
