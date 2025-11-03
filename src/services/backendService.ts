@@ -81,6 +81,37 @@ class BackendService {
 
     return this.getSalesPerformance(filters);
   }
+
+  /**
+   * Exporta reporte en formato PDF
+   */
+  async exportSalesReport(filters: SalesPerformanceFilters, format: 'pdf' | 'csv'): Promise<{
+    url: string;
+    format: string;
+    expires_in_seconds: number;
+    message: string;
+  }> {
+    const params = new URLSearchParams({
+      from: filters.from,
+      to: filters.to,
+      format: format,
+    });
+
+    if (filters.vendor_id) {
+      params.append('vendor_id', filters.vendor_id);
+    }
+
+    if (filters.product_id) {
+      params.append('product_id', filters.product_id);
+    }
+
+    return this.request<{
+      url: string;
+      format: string;
+      expires_in_seconds: number;
+      message: string;
+    }>(`/venta/api/reports/sales-performance/export?${params.toString()}`);
+  }
 }
 
 // === INSTANCIA SINGLETON ===
@@ -99,6 +130,12 @@ export const getSalesPerformance = (filters: SalesPerformanceFilters) =>
  */
 export const getSalesPerformanceDefault = () => 
   backendService.getSalesPerformanceDefault();
+
+/**
+ * Exporta reporte de ventas en el formato especificado
+ */
+export const exportSalesReport = (filters: SalesPerformanceFilters, format: 'pdf' | 'csv') =>
+  backendService.exportSalesReport(filters, format);
 
 /**
  * Convierte datos del backend al formato esperado por la UI

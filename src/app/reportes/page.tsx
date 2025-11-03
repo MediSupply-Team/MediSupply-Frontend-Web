@@ -4,8 +4,7 @@ import React, { useState } from 'react';
 import { 
   useEstadisticasVentas, 
   useDatosGraficos, 
-  useVentasVendedores, 
-  useExportarReporte 
+  useVentasVendedores
 } from '@/hooks/useReportes';
 import { 
   useSalesPerformance, 
@@ -14,6 +13,13 @@ import {
   useSalesTable 
 } from '@/hooks/useBackend';
 import { useNotifications } from '@/store/appStore';
+import { 
+  exportToCSV, 
+  exportToPDF, 
+  calculateSummary,
+  type FilterData 
+} from '@/utils/export';
+import { useExportReport } from '@/hooks/useExportReport';
 import type { FiltrosReportes, SalesPerformanceFilters } from '@/types';
 
 const ReportesPage = () => {
@@ -33,13 +39,13 @@ const ReportesPage = () => {
   const { data: ventasDataMock, isLoading: loadingVentasMock } = useVentasVendedores(filtros);
   
   // === QUERIES BACKEND DATA ===
-  const { data: salesData, isLoading: loadingSalesData, error: salesError } = useSalesPerformance(backendFilters);
+  const { isLoading: loadingSalesData, error: salesError } = useSalesPerformance(backendFilters);
   const { data: salesSummary, isLoading: loadingSummary } = useSalesSummary(backendFilters);
   const { data: salesCharts, isLoading: loadingCharts } = useSalesCharts(backendFilters);
   const { data: salesTable, isLoading: loadingTable } = useSalesTable(backendFilters);
   
   // === MUTATIONS ===
-  const exportarMutation = useExportarReporte();
+  const { exportReport, isLoading: isExporting } = useExportReport();
 
   // === DATOS SELECCIONADOS ===
   const isLoading = useBackendData 
@@ -249,26 +255,81 @@ const ReportesPage = () => {
   const datosGraficosActuales = getDatosGraficos();
   const ventasDataActuales = getVentasData();
 
-  const handleExportar = (formato: 'excel' | 'pdf') => {
-    exportarMutation.mutate(
-      { formato, filtros },
-      {
-        onSuccess: () => {
+  const handleExportar = async (formato: 'excel' | 'pdf') => {
+    try {
+      if (useBackendData) {
+        // Usar el endpoint del backend para exportación
+        const result = await exportReport(backendFilters, formato === 'excel' ? 'csv' : 'pdf');
+        
+        if (result.success) {
           addNotification({
             tipo: 'success',
             titulo: 'Exportación exitosa',
-            mensaje: `Reporte exportado exitosamente en formato ${formato.toUpperCase()}`,
+            mensaje: result.message || `Reporte exportado exitosamente en formato ${formato.toUpperCase()}`,
           });
-        },
-        onError: () => {
+        } else {
           addNotification({
             tipo: 'error',
             titulo: 'Error de exportación',
-            mensaje: 'Error al exportar el reporte',
+            mensaje: result.error || 'Error al exportar el reporte desde el servidor',
           });
-        },
+        }
+      } else {
+        // Fallback para datos mock usando generación local
+        const ventasData = getVentasData();
+        
+        if (!ventasData?.data || ventasData.data.length === 0) {
+          addNotification({
+            tipo: 'warning',
+            titulo: 'Sin datos para exportar',
+            mensaje: 'No hay datos disponibles para exportar',
+          });
+          return;
+        }
+
+        // Adaptar datos de VentaVendedor a formato de exportación
+        const exportData = ventasData.data.map(venta => ({
+          id: venta.id,
+          producto: venta.producto,
+          proveedor: venta.vendedor, // Usando vendedor como proveedor
+          fecha: venta.fecha,
+          cantidad: venta.cantidad,
+          precioUnitario: venta.ingresos / venta.cantidad, // Calculando precio unitario
+          total: venta.ingresos,
+          estado: venta.estado
+        }));
+        
+        // Calcular resumen
+        const summary = calculateSummary(exportData);
+        
+        // Crear objeto de filtros para incluir en el reporte
+        const filterData: FilterData = {
+          fechaInicio: filtros.fechaInicio,
+          fechaFin: filtros.fechaFin,
+          estado: filtros.estado,
+          busqueda: filtros.producto // Usando producto como búsqueda
+        };
+
+        if (formato === 'excel') {
+          exportToCSV(exportData, filterData);
+        } else {
+          exportToPDF(exportData, summary, filterData);
+        }
+
+        addNotification({
+          tipo: 'success',
+          titulo: 'Exportación exitosa',
+          mensaje: `Reporte exportado exitosamente en formato ${formato.toUpperCase()}`,
+        });
       }
-    );
+    } catch (error) {
+      console.error('Error al exportar:', error);
+      addNotification({
+        tipo: 'error',
+        titulo: 'Error de exportación',
+        mensaje: 'Error al exportar el reporte. Intente nuevamente.',
+      });
+    }
   };
 
   const handleFiltroChange = (campo: keyof FiltrosReportes, valor: string) => {
@@ -377,7 +438,7 @@ const ReportesPage = () => {
         <div className="flex gap-3">
           <button
             onClick={() => handleExportar('excel')}
-            disabled={exportarMutation.isPending}
+            disabled={isExporting}
             className="inline-flex items-center px-4 py-2 text-white rounded-lg font-medium transition-all duration-200 disabled:opacity-50"
             style={{ 
               backgroundColor: 'var(--accent-green)',
@@ -387,12 +448,12 @@ const ReportesPage = () => {
             <span className="material-symbols-outlined mr-2 text-lg">
               description
             </span>
-            {exportarMutation.isPending ? 'Exportando...' : 'Exportar Excel'}
+            {isExporting ? 'Exportando...' : 'Exportar Excel'}
           </button>
           
           <button
             onClick={() => handleExportar('pdf')}
-            disabled={exportarMutation.isPending}
+            disabled={isExporting}
             className="inline-flex items-center px-4 py-2 text-white rounded-lg font-medium transition-all duration-200 disabled:opacity-50"
             style={{ 
               backgroundColor: 'var(--accent-red)',
@@ -402,7 +463,7 @@ const ReportesPage = () => {
             <span className="material-symbols-outlined mr-2 text-lg">
               picture_as_pdf
             </span>
-            {exportarMutation.isPending ? 'Exportando...' : 'Exportar PDF'}
+            {isExporting ? 'Exportando...' : 'Exportar PDF'}
           </button>
         </div>
       </div>
