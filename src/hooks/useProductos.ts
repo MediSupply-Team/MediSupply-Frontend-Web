@@ -1,55 +1,44 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { 
-  FiltrosInventario 
-} from '@/types';
-import {
-  getProductos,
-  getProducto,
-  createProducto,
+import { 
+  getProductos, 
+  createProducto, 
+  updateProducto, 
+  deleteProducto 
 } from '@/services/productosService';
+import type { Producto, FiltrosInventario } from '@/types';
 
-// === HOOKS DE QUERY ===
+// === QUERY KEYS ===
+export const productosKeys = {
+  all: ['productos'] as const,
+  lists: () => [...productosKeys.all, 'list'] as const,
+  list: (filtros?: FiltrosInventario) => [...productosKeys.lists(), filtros] as const,
+  details: () => [...productosKeys.all, 'detail'] as const,
+  detail: (id: string) => [...productosKeys.details(), id] as const,
+};
 
 /**
  * Hook para obtener productos con filtros
  */
 export const useProductos = (filtros?: FiltrosInventario) => {
   return useQuery({
-    queryKey: ['productos', filtros],
+    queryKey: productosKeys.list(filtros),
     queryFn: () => getProductos(filtros),
-    staleTime: 1000 * 60 * 5, // 5 minutos
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    gcTime: 10 * 60 * 1000,   // 10 minutos
   });
 };
-
-/**
- * Hook para obtener un producto específico
- */
-export const useProducto = (id: string) => {
-  return useQuery({
-    queryKey: ['productos', id],
-    queryFn: () => getProducto(id),
-    enabled: !!id, // Solo ejecutar si hay ID
-  });
-};
-
-// === HOOKS DE MUTACIÓN ===
 
 /**
  * Hook para crear un nuevo producto
  */
 export const useCreateProducto = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: createProducto,
-    onSuccess: (nuevoProducto) => {
-      // Invalidar las queries de productos para refrescar la lista
-      queryClient.invalidateQueries({ queryKey: ['productos'] });
-      
-      // Agregar el nuevo producto al cache
-      queryClient.setQueryData(['productos', nuevoProducto.id], nuevoProducto);
-      
-      console.log('Producto creado exitosamente:', nuevoProducto.nombre);
+    onSuccess: () => {
+      // Invalidar todas las queries de productos para refrescar la lista
+      queryClient.invalidateQueries({ queryKey: productosKeys.all });
     },
     onError: (error) => {
       console.error('Error al crear producto:', error);
@@ -57,25 +46,47 @@ export const useCreateProducto = () => {
   });
 };
 
-// === HOOKS OPTIMIZADOS PARA CASOS ESPECÍFICOS ===
-
 /**
- * Hook para obtener productos con stock bajo
+ * Hook para actualizar un producto existente
  */
-export const useProductosStockBajo = () => {
-  return useProductos({ stockBajo: true });
+export const useUpdateProducto = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateProducto,
+    onSuccess: (updatedProducto: Producto) => {
+      // Invalidar queries relacionadas
+      queryClient.invalidateQueries({ queryKey: productosKeys.all });
+      
+      // Actualizar cache específico si existe
+      queryClient.setQueryData(
+        productosKeys.detail(updatedProducto.id),
+        updatedProducto
+      );
+    },
+    onError: (error) => {
+      console.error('Error al actualizar producto:', error);
+    },
+  });
 };
 
 /**
- * Hook para obtener productos próximos a vencer
+ * Hook para eliminar un producto
  */
-export const useProductosProximosVencer = () => {
-  return useProductos({ proximoVencer: true });
-};
+export const useDeleteProducto = () => {
+  const queryClient = useQueryClient();
 
-/**
- * Hook para obtener productos por categoría
- */
-export const useProductosPorCategoria = (categoria: string) => {
-  return useProductos({ categoria });
+  return useMutation({
+    mutationFn: deleteProducto,
+    onSuccess: (_, deletedId: string) => {
+      // Remover del cache
+      queryClient.removeQueries({ queryKey: productosKeys.detail(deletedId) });
+      
+      // Invalidar listas
+      queryClient.invalidateQueries({ queryKey: productosKeys.lists() });
+    },
+    onError: (error) => {
+      console.error('Error al eliminar producto:', error);
+    },
+  });
 };
