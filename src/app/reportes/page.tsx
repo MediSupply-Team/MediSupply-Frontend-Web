@@ -470,50 +470,52 @@ const ReportesPage = () => {
 
       {/* Estadísticas generales */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Indicador de fuente de datos */}
-        <div className="lg:col-span-4 mb-4">
-          <div 
-            className="flex items-center justify-between p-4 rounded-lg border"
-            style={{ 
-              backgroundColor: useBackendData 
-                ? 'color-mix(in oklab, var(--accent-green) 10%, var(--surface-color))'
-                : 'color-mix(in oklab, var(--primary-color) 10%, var(--surface-color))',
-              borderColor: useBackendData 
-                ? 'var(--accent-green)'
-                : 'var(--primary-color)'
-            }}
-          >
-            <div className="flex items-center gap-3">
-              <div className={`w-3 h-3 rounded-full ${
-                useBackendData && !salesError 
-                  ? 'bg-[var(--accent-green)]' 
-                  : useBackendData && salesError 
-                  ? 'bg-[var(--accent-red)]' 
-                  : 'bg-[var(--primary-color)]'
-              }`}></div>
-              <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
-                {useBackendData 
-                  ? salesError 
-                    ? 'Backend no disponible - Mostrando datos de ejemplo'
-                    : 'Conectado al Backend de Producción'
-                  : 'Usando Datos de Demostración'
-                }
-              </span>
+        {/* Indicador de fuente de datos - Solo mostrar en desarrollo */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="lg:col-span-4 mb-4">
+            <div 
+              className="flex items-center justify-between p-4 rounded-lg border"
+              style={{ 
+                backgroundColor: useBackendData 
+                  ? 'color-mix(in oklab, var(--accent-green) 10%, var(--surface-color))'
+                  : 'color-mix(in oklab, var(--primary-color) 10%, var(--surface-color))',
+                borderColor: useBackendData 
+                  ? 'var(--accent-green)'
+                  : 'var(--primary-color)'
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-3 h-3 rounded-full ${
+                  useBackendData && !salesError 
+                    ? 'bg-[var(--accent-green)]' 
+                    : useBackendData && salesError 
+                    ? 'bg-[var(--accent-red)]' 
+                    : 'bg-[var(--primary-color)]'
+                }`}></div>
+                <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                  {useBackendData 
+                    ? salesError 
+                      ? 'Backend no disponible - Mostrando datos de ejemplo'
+                      : 'Conectado al Backend de Producción'
+                    : 'Usando Datos de Demostración'
+                  }
+                </span>
+              </div>
+              
+              {useBackendData && !salesError && (
+                <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  Datos del servidor de producción
+                </div>
+              )}
+              
+              {salesError && (
+                <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  Mostrando datos de demostración debido a problemas de conectividad
+                </div>
+              )}
             </div>
-            
-            {useBackendData && !salesError && (
-              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                Datos del servidor de producción
-              </div>
-            )}
-            
-            {salesError && (
-              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                Mostrando datos de demostración debido a problemas de conectividad
-              </div>
-            )}
           </div>
-        </div>
+        )}
         
         <div 
           className="rounded-xl shadow-sm p-6"
