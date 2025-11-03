@@ -26,8 +26,8 @@ export async function GET(request: NextRequest) {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        // Agregar headers de CORS si el backend los necesita
         'User-Agent': 'MediSupply-Frontend/1.0',
+        'Origin': 'https://medi-supply-frontend-olm5buqze-julianrvillamils-projects.vercel.app',
       },
     });
 

@@ -39,6 +39,8 @@ export async function GET(request: NextRequest) {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
+        'User-Agent': 'MediSupply-Frontend/1.0',
+        'Origin': 'https://medi-supply-frontend-olm5buqze-julianrvillamils-projects.vercel.app',
       },
     });
 
