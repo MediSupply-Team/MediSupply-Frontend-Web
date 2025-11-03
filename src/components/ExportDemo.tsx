@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { exportToCSV, exportToPDF, calculateSummary } from '@/utils/export';
 

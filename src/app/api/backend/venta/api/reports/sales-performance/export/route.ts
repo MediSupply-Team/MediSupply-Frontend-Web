@@ -16,8 +16,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Construir URL del backend
-    const backendUrl = new URL('https://medisupply-backend.duckdns.org/venta/api/reports/sales-performance/export');
+    // Construir URL del backend usando variable de entorno
+    const backendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://medisupply-backend.duckdns.org';
+    const backendUrl = new URL(`${backendBaseUrl}/venta/api/reports/sales-performance/export`);
     backendUrl.searchParams.set('from', from);
     backendUrl.searchParams.set('to', to);
     backendUrl.searchParams.set('format', format);

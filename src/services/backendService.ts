@@ -1,9 +1,17 @@
 import type { SalesPerformanceFilters, SalesPerformanceResponse } from '@/types';
 
 // === CONFIGURACIÓN DEL BACKEND ===
-const BACKEND_BASE_URL = process.env.NODE_ENV === 'development' 
-  ? '/api/backend'  // Usar proxy local en desarrollo
-  : 'https://medisupply-backend.duckdns.org'; // URL directa en producción
+const getBackendBaseUrl = () => {
+  // En desarrollo, usar proxy local
+  if (process.env.NODE_ENV === 'development') {
+    return '/api/backend';
+  }
+  
+  // En producción, usar variable de entorno o fallback
+  return process.env.NEXT_PUBLIC_BACKEND_URL || 'https://medisupply-backend.duckdns.org';
+};
+
+const BACKEND_BASE_URL = getBackendBaseUrl();
 
 /**
  * Cliente HTTP para el backend de producción
