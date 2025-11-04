@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useCreateProducto } from '@/hooks/useProductos';
+import { useCreateProductoBackend } from '@/hooks/useProductos';
 import { useNotifications } from '@/store/appStore';
 
 interface FormularioProducto {
@@ -38,7 +38,7 @@ interface ErroresFormulario {
 export default function AgregarProductoPage() {
   const router = useRouter();
   const { addNotification } = useNotifications();
-  const createMutation = useCreateProducto();
+  const createMutation = useCreateProductoBackend();
 
   // === ESTADO DEL FORMULARIO ===
   const [formulario, setFormulario] = useState<FormularioProducto>({
@@ -101,28 +101,8 @@ export default function AgregarProductoPage() {
     }
 
     try {
-      // Determinar el estado del stock basado en el stock inicial y mínimo
-      let estadoStock: 'disponible' | 'stock-bajo' | 'agotado' = 'disponible';
-      if (formulario.stockInicial === 0) {
-        estadoStock = 'agotado';
-      } else if (formulario.stockInicial <= formulario.stockMinimo) {
-        estadoStock = 'stock-bajo';
-      }
-
-      // Crear el producto
-      await createMutation.mutateAsync({
-        nombre: formulario.nombre,
-        sku: formulario.sku,
-        categoria: formulario.categoria,
-        ubicacion: formulario.almacen,
-        ubicacionDetalle: formulario.ubicacion || `${formulario.almacen} - Sin especificar`,
-        stock: formulario.stockInicial,
-        unidadMedida: formulario.unidadMedida,
-        estadoStock,
-        fechaVencimiento: formulario.fechaVencimiento || undefined,
-        icono: getIconoCategoria(formulario.categoria),
-        colorIcono: getColorIcono(formulario.categoria),
-      });
+      // Crear el producto usando el backend
+      await createMutation.mutateAsync(formulario);
 
       addNotification({
         tipo: 'success',
@@ -143,29 +123,6 @@ export default function AgregarProductoPage() {
 
   const handleCancelar = () => {
     router.push('/productos');
-  };
-
-  // Funciones auxiliares para iconos y colores
-  const getIconoCategoria = (categoria: string): string => {
-    switch (categoria) {
-      case 'Equipos Médicos': return 'medical_services';
-      case 'Insumos Descartables': return 'medical_information';
-      case 'Medicamentos': return 'medication';
-      case 'Material Quirúrgico': return 'healing';
-      case 'Equipos de Protección': return 'masks';
-      default: return 'inventory_2';
-    }
-  };
-
-  const getColorIcono = (categoria: string): string => {
-    switch (categoria) {
-      case 'Equipos Médicos': return 'var(--primary-color)';
-      case 'Insumos Descartables': return 'var(--accent-color)';
-      case 'Medicamentos': return 'var(--accent-red)';
-      case 'Material Quirúrgico': return 'var(--secondary-color)';
-      case 'Equipos de Protección': return 'var(--primary-color)';
-      default: return 'var(--text-secondary)';
-    }
   };
 
   return (
