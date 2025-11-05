@@ -48,8 +48,21 @@ export interface Producto {
   fechaVencimiento?: string;
   icono: string;
   colorIcono: string;
-  fechaCreacion: string;
-  fechaActualizacion: string;
+  precio?: number;
+  proveedor?: string;
+  lote?: string;
+  descripcion?: string;
+  fechaCreacion?: string;
+  fechaActualizacion?: string;
+}
+
+// === RESPUESTA DE PRODUCTOS ===
+export interface ProductosResponse {
+  data: Producto[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
 }
 
 // === TIPOS DE PROVEEDORES ===
