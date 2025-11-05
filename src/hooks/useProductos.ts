@@ -5,7 +5,9 @@ import {
   updateProducto, 
   deleteProducto 
 } from '@/services/productosService';
+import { crearProductoBackend } from '@/services/productosBackendService';
 import type { Producto, FiltrosInventario } from '@/types';
+import type { FormularioProducto } from '@/services/productosBackendService';
 
 // === QUERY KEYS ===
 export const productosKeys = {
@@ -87,6 +89,26 @@ export const useDeleteProducto = () => {
     },
     onError: (error) => {
       console.error('Error al eliminar producto:', error);
+    },
+  });
+};
+
+/**
+ * Hook para crear un producto usando el backend
+ */
+export const useCreateProductoBackend = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (formulario: FormularioProducto) => crearProductoBackend(formulario),
+    onSuccess: (newProducto) => {
+      console.log('Producto creado exitosamente en backend:', newProducto);
+      
+      // Invalidar todas las listas de productos para refrescar los datos
+      queryClient.invalidateQueries({ queryKey: productosKeys.lists() });
+    },
+    onError: (error) => {
+      console.error('Error al crear producto en backend:', error);
     },
   });
 };

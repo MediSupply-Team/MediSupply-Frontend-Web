@@ -1,13 +1,7 @@
 import type { SalesPerformanceFilters, SalesPerformanceResponse } from '@/types';
 
 // === CONFIGURACIÓN DEL BACKEND ===
-const getBackendBaseUrl = () => {
-  // SIEMPRE usar proxy para evitar problemas de CORS
-  // El proxy se encarga de llamar al backend real
-  return '/api/backend';
-};
-
-const BACKEND_BASE_URL = getBackendBaseUrl();
+const BACKEND_BASE_URL = 'https://medisupply-backend.duckdns.org'; // Llamadas directas al backend
 
 /**
  * Cliente HTTP para el backend de producción

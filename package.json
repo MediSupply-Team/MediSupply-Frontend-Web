@@ -11,9 +11,11 @@
     "cy:open": "cypress open"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
     "@tanstack/react-query": "^5.90.5",
     "@tanstack/react-query-devtools": "^5.90.2",
     "@types/papaparse": "^5.3.16",
+    "@types/uuid": "^10.0.0",
     "axios": "^1.12.2",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
@@ -21,6 +23,9 @@
     "papaparse": "^5.5.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "react-hook-form": "^7.66.0",
+    "uuid": "^13.0.0",
+    "zod": "^4.1.12",
     "zustand": "^5.0.8"
   },
   "devDependencies": {

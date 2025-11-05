@@ -1,136 +1,65 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useCreateProducto } from '@/hooks/useProductos';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useCreateProductoBackend } from '@/hooks/useProductos';
 import { useNotifications } from '@/store/appStore';
-
-interface FormularioProducto {
-  nombre: string;
-  sku: string;
-  codigoBarras: string;
-  categoria: string;
-  marca: string;
-  descripcion: string;
-  stockInicial: number;
-  stockMinimo: number;
-  unidadMedida: string;
-  almacen: string;
-  ubicacion: string;
-  temperatura: string;
-  fechaVencimiento: string;
-  precioCosto: number;
-  precioVenta: number;
-  proveedor: string;
-  registroSanitario: string;
-}
-
-interface ErroresFormulario {
-  nombre?: string;
-  sku?: string;
-  categoria?: string;
-  stockInicial?: string;
-  stockMinimo?: string;
-  unidadMedida?: string;
-  almacen?: string;
-}
+import { productoSchema, type ProductoFormData } from '@/schemas/productoSchema';
 
 export default function AgregarProductoPage() {
   const router = useRouter();
   const { addNotification } = useNotifications();
-  const createMutation = useCreateProducto();
+  const createMutation = useCreateProductoBackend();
 
-  // === ESTADO DEL FORMULARIO ===
-  const [formulario, setFormulario] = useState<FormularioProducto>({
-    nombre: '',
-    sku: '',
-    codigoBarras: '',
-    categoria: '',
-    marca: '',
-    descripcion: '',
-    stockInicial: 0,
-    stockMinimo: 0,
-    unidadMedida: '',
-    almacen: '',
-    ubicacion: '',
-    temperatura: 'Temperatura Ambiente',
-    fechaVencimiento: '',
-    precioCosto: 0,
-    precioVenta: 0,
-    proveedor: '',
-    registroSanitario: '',
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset
+  } = useForm<ProductoFormData>({
+    resolver: zodResolver(productoSchema),
+    defaultValues: {
+      nombre: '',
+      sku: '',
+      codigoBarras: '',
+      categoria: '',
+      marca: '',
+      descripcion: '',
+      stockInicial: undefined,
+      stockMinimo: undefined,
+      unidadMedida: '',
+      almacen: '',
+      ubicacion: '',
+      temperatura: 'Temperatura Ambiente',
+      fechaVencimiento: '',
+      precioCosto: undefined,
+      precioVenta: undefined,
+      proveedor: '',
+      registroSanitario: '',
+    }
   });
 
-  const [errores, setErrores] = useState<ErroresFormulario>({});
-
-  // === HANDLERS ===
-  const handleInputChange = (campo: keyof FormularioProducto, valor: string | number) => {
-    setFormulario(prev => ({ ...prev, [campo]: valor }));
-    // Limpiar error del campo cuando se modifica
-    if (errores[campo as keyof ErroresFormulario]) {
-      setErrores(prev => ({ ...prev, [campo]: undefined }));
-    }
-  };
-
-  const validarFormulario = (): boolean => {
-    const nuevosErrores: ErroresFormulario = {};
-
-    // Campos requeridos
-    if (!formulario.nombre.trim()) nuevosErrores.nombre = 'El nombre es requerido';
-    if (!formulario.sku.trim()) nuevosErrores.sku = 'El SKU es requerido';
-    if (!formulario.categoria) nuevosErrores.categoria = 'La categoría es requerida';
-    if (formulario.stockInicial < 0) nuevosErrores.stockInicial = 'El stock inicial debe ser mayor o igual a 0';
-    if (formulario.stockMinimo < 0) nuevosErrores.stockMinimo = 'El stock mínimo debe ser mayor o igual a 0';
-    if (!formulario.unidadMedida) nuevosErrores.unidadMedida = 'La unidad de medida es requerida';
-    if (!formulario.almacen) nuevosErrores.almacen = 'El almacén es requerido';
-
-    setErrores(nuevosErrores);
-    return Object.keys(nuevosErrores).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validarFormulario()) {
-      addNotification({
-        tipo: 'error',
-        titulo: 'Error en el formulario',
-        mensaje: 'Por favor, complete todos los campos requeridos',
-      });
-      return;
-    }
-
+  const onSubmit = async (data: ProductoFormData) => {
     try {
-      // Determinar el estado del stock basado en el stock inicial y mínimo
-      let estadoStock: 'disponible' | 'stock-bajo' | 'agotado' = 'disponible';
-      if (formulario.stockInicial === 0) {
-        estadoStock = 'agotado';
-      } else if (formulario.stockInicial <= formulario.stockMinimo) {
-        estadoStock = 'stock-bajo';
-      }
+      // Convertir undefined a 0 para los campos numéricos
+      const processedData = {
+        ...data,
+        stockInicial: data.stockInicial || 0,
+        stockMinimo: data.stockMinimo || 0,
+        precioCosto: data.precioCosto || 0,
+        precioVenta: data.precioVenta || 0,
+      };
 
-      // Crear el producto
-      await createMutation.mutateAsync({
-        nombre: formulario.nombre,
-        sku: formulario.sku,
-        categoria: formulario.categoria,
-        ubicacion: formulario.almacen,
-        ubicacionDetalle: formulario.ubicacion || `${formulario.almacen} - Sin especificar`,
-        stock: formulario.stockInicial,
-        unidadMedida: formulario.unidadMedida,
-        estadoStock,
-        fechaVencimiento: formulario.fechaVencimiento || undefined,
-        icono: getIconoCategoria(formulario.categoria),
-        colorIcono: getColorIcono(formulario.categoria),
-      });
+      await createMutation.mutateAsync(processedData);
 
       addNotification({
         tipo: 'success',
         titulo: 'Producto creado',
-        mensaje: `${formulario.nombre} se agregó correctamente al inventario`,
+        mensaje: `${data.nombre} se agregó correctamente al inventario`,
       });
 
-      // Redirigir de vuelta a la lista de productos
+      reset();
       router.push('/productos');
     } catch {
       addNotification({
@@ -142,39 +71,17 @@ export default function AgregarProductoPage() {
   };
 
   const handleCancelar = () => {
+    reset();
     router.push('/productos');
-  };
-
-  // Funciones auxiliares para iconos y colores
-  const getIconoCategoria = (categoria: string): string => {
-    switch (categoria) {
-      case 'Equipos Médicos': return 'medical_services';
-      case 'Insumos Descartables': return 'medical_information';
-      case 'Medicamentos': return 'medication';
-      case 'Material Quirúrgico': return 'healing';
-      case 'Equipos de Protección': return 'masks';
-      default: return 'inventory_2';
-    }
-  };
-
-  const getColorIcono = (categoria: string): string => {
-    switch (categoria) {
-      case 'Equipos Médicos': return 'var(--primary-color)';
-      case 'Insumos Descartables': return 'var(--accent-color)';
-      case 'Medicamentos': return 'var(--accent-red)';
-      case 'Material Quirúrgico': return 'var(--secondary-color)';
-      case 'Equipos de Protección': return 'var(--primary-color)';
-      default: return 'var(--text-secondary)';
-    }
   };
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <header>
         <div className="flex items-center gap-4 mb-4">
           <button 
             onClick={handleCancelar}
+            type="button"
             className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
           >
             <span className="material-symbols-outlined">arrow_back</span>
@@ -189,9 +96,8 @@ export default function AgregarProductoPage() {
         </p>
       </header>
 
-      {/* Formulario */}
       <div className="bg-[var(--surface-color)] border border-[var(--border-color)] rounded-xl p-6">
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
           {/* Información Básica */}
           <div>
             <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
@@ -203,18 +109,16 @@ export default function AgregarProductoPage() {
                   Nombre del Producto *
                 </label>
                 <input
-                  className={`w-full rounded-lg border bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] ${
-                    errores.nombre ? 'border-red-500' : 'border-[var(--border-color)]'
+                  {...register('nombre')}
+                  className={`w-full rounded-lg border bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] p-3 ${
+                    errors.nombre ? 'border-red-500' : 'border-[var(--border-color)]'
                   }`}
                   id="nombre"
                   placeholder="Ej: Jeringas Desechables 10ml"
                   type="text"
-                  value={formulario.nombre}
-                  onChange={(e) => handleInputChange('nombre', e.target.value)}
-                  required
                 />
-                {errores.nombre && (
-                  <p className="text-red-500 text-xs mt-1">{errores.nombre}</p>
+                {errors.nombre && (
+                  <p className="text-red-500 text-xs mt-1">{errors.nombre.message}</p>
                 )}
               </div>
               
@@ -223,32 +127,31 @@ export default function AgregarProductoPage() {
                   SKU *
                 </label>
                 <input
-                  className={`w-full rounded-lg border bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] ${
-                    errores.sku ? 'border-red-500' : 'border-[var(--border-color)]'
+                  {...register('sku')}
+                  className={`w-full rounded-lg border bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] p-3 ${
+                    errors.sku ? 'border-red-500' : 'border-[var(--border-color)]'
                   }`}
                   id="sku"
                   placeholder="JER-10ML-001"
                   type="text"
-                  value={formulario.sku}
-                  onChange={(e) => handleInputChange('sku', e.target.value)}
-                  required
                 />
-                {errores.sku && (
-                  <p className="text-red-500 text-xs mt-1">{errores.sku}</p>
+                {errors.sku && (
+                  <p className="text-red-500 text-xs mt-1">{errors.sku.message}</p>
                 )}
               </div>
               
               <div>
-                <label className="block mb-2 text-sm font-medium text-[var(--text-primary)]" htmlFor="codigo-barras">
+                <label className="block mb-2 text-sm font-medium text-[var(--text-primary)]" htmlFor="codigoBarras">
                   Código de Barras
                 </label>
                 <input
-                  className="w-full rounded-lg border-[var(--border-color)] bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]"
-                  id="codigo-barras"
-                  placeholder="1234567890123"
+                  {...register('codigoBarras')}
+                  className={`w-full rounded-lg border bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] p-3 ${
+                    errors.codigoBarras ? 'border-red-500' : 'border-[var(--border-color)]'
+                  }`}
+                  id="codigoBarras"
+                  placeholder="7501234567890"
                   type="text"
-                  value={formulario.codigoBarras}
-                  onChange={(e) => handleInputChange('codigoBarras', e.target.value)}
                 />
               </div>
               
@@ -257,52 +160,58 @@ export default function AgregarProductoPage() {
                   Categoría *
                 </label>
                 <select
-                  className={`w-full rounded-lg border bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] ${
-                    errores.categoria ? 'border-red-500' : 'border-[var(--border-color)]'
+                  {...register('categoria')}
+                  className={`w-full rounded-lg border bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] p-3 ${
+                    errors.categoria ? 'border-red-500' : 'border-[var(--border-color)]'
                   }`}
                   id="categoria"
-                  value={formulario.categoria}
-                  onChange={(e) => handleInputChange('categoria', e.target.value)}
-                  required
                 >
                   <option value="">Seleccione una categoría</option>
-                  <option>Equipos Médicos</option>
-                  <option>Insumos Descartables</option>
-                  <option>Medicamentos</option>
-                  <option>Material Quirúrgico</option>
-                  <option>Equipos de Protección</option>
+                  <option value="Equipos Médicos">Equipos Médicos</option>
+                  <option value="Insumos Descartables">Insumos Descartables</option>
+                  <option value="Medicamentos">Medicamentos</option>
+                  <option value="Material Quirúrgico">Material Quirúrgico</option>
+                  <option value="Equipos de Protección">Equipos de Protección</option>
                 </select>
-                {errores.categoria && (
-                  <p className="text-red-500 text-xs mt-1">{errores.categoria}</p>
+                {errors.categoria && (
+                  <p className="text-red-500 text-xs mt-1">{errors.categoria.message}</p>
                 )}
               </div>
               
               <div>
                 <label className="block mb-2 text-sm font-medium text-[var(--text-primary)]" htmlFor="marca">
-                  Marca
+                  Marca *
                 </label>
                 <input
-                  className="w-full rounded-lg border-[var(--border-color)] bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]"
+                  {...register('marca')}
+                  className={`w-full rounded-lg border bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] p-3 ${
+                    errors.marca ? 'border-red-500' : 'border-[var(--border-color)]'
+                  }`}
                   id="marca"
-                  placeholder="Marca del producto"
+                  placeholder="BD, Fresenius, Johnson & Johnson"
                   type="text"
-                  value={formulario.marca}
-                  onChange={(e) => handleInputChange('marca', e.target.value)}
                 />
+                {errors.marca && (
+                  <p className="text-red-500 text-xs mt-1">{errors.marca.message}</p>
+                )}
               </div>
               
               <div className="md:col-span-2">
                 <label className="block mb-2 text-sm font-medium text-[var(--text-primary)]" htmlFor="descripcion">
-                  Descripción
+                  Descripción *
                 </label>
                 <textarea
-                  className="w-full rounded-lg border-[var(--border-color)] bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]"
+                  {...register('descripcion')}
+                  className={`w-full rounded-lg border bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] p-3 ${
+                    errors.descripcion ? 'border-red-500' : 'border-[var(--border-color)]'
+                  }`}
                   id="descripcion"
+                  placeholder="Descripción detallada del producto..."
                   rows={3}
-                  placeholder="Descripción detallada del producto"
-                  value={formulario.descripcion}
-                  onChange={(e) => handleInputChange('descripcion', e.target.value)}
                 />
+                {errors.descripcion && (
+                  <p className="text-red-500 text-xs mt-1">{errors.descripcion.message}</p>
+                )}
               </div>
             </div>
           </div>
@@ -314,70 +223,80 @@ export default function AgregarProductoPage() {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <label className="block mb-2 text-sm font-medium text-[var(--text-primary)]" htmlFor="stock-inicial">
+                <label className="block mb-2 text-sm font-medium text-[var(--text-primary)]" htmlFor="stockInicial">
                   Stock Inicial *
                 </label>
                 <input
-                  className={`w-full rounded-lg border bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] ${
-                    errores.stockInicial ? 'border-red-500' : 'border-[var(--border-color)]'
+                  {...register('stockInicial', { 
+                    setValueAs: (value) => {
+                      if (value === '' || value === null || value === undefined) {
+                        return undefined;
+                      }
+                      const num = parseInt(value, 10);
+                      return isNaN(num) ? undefined : num;
+                    }
+                  })}
+                  className={`w-full rounded-lg border bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] p-3 ${
+                    errors.stockInicial ? 'border-red-500' : 'border-[var(--border-color)]'
                   }`}
-                  id="stock-inicial"
+                  id="stockInicial"
                   placeholder="0"
                   type="number"
                   min="0"
-                  value={formulario.stockInicial}
-                  onChange={(e) => handleInputChange('stockInicial', parseInt(e.target.value) || 0)}
-                  required
                 />
-                {errores.stockInicial && (
-                  <p className="text-red-500 text-xs mt-1">{errores.stockInicial}</p>
+                {errors.stockInicial && (
+                  <p className="text-red-500 text-xs mt-1">{errors.stockInicial.message}</p>
                 )}
               </div>
               
               <div>
-                <label className="block mb-2 text-sm font-medium text-[var(--text-primary)]" htmlFor="stock-minimo">
+                <label className="block mb-2 text-sm font-medium text-[var(--text-primary)]" htmlFor="stockMinimo">
                   Stock Mínimo *
                 </label>
                 <input
-                  className={`w-full rounded-lg border bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] ${
-                    errores.stockMinimo ? 'border-red-500' : 'border-[var(--border-color)]'
+                  {...register('stockMinimo', { 
+                    setValueAs: (value) => {
+                      if (value === '' || value === null || value === undefined) {
+                        return undefined;
+                      }
+                      const num = parseInt(value, 10);
+                      return isNaN(num) ? undefined : num;
+                    }
+                  })}
+                  className={`w-full rounded-lg border bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] p-3 ${
+                    errors.stockMinimo ? 'border-red-500' : 'border-[var(--border-color)]'
                   }`}
-                  id="stock-minimo"
+                  id="stockMinimo"
                   placeholder="10"
                   type="number"
                   min="0"
-                  value={formulario.stockMinimo}
-                  onChange={(e) => handleInputChange('stockMinimo', parseInt(e.target.value) || 0)}
-                  required
                 />
-                {errores.stockMinimo && (
-                  <p className="text-red-500 text-xs mt-1">{errores.stockMinimo}</p>
+                {errors.stockMinimo && (
+                  <p className="text-red-500 text-xs mt-1">{errors.stockMinimo.message}</p>
                 )}
               </div>
               
               <div>
-                <label className="block mb-2 text-sm font-medium text-[var(--text-primary)]" htmlFor="unidad-medida">
+                <label className="block mb-2 text-sm font-medium text-[var(--text-primary)]" htmlFor="unidadMedida">
                   Unidad de Medida *
                 </label>
                 <select
-                  className={`w-full rounded-lg border bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] ${
-                    errores.unidadMedida ? 'border-red-500' : 'border-[var(--border-color)]'
+                  {...register('unidadMedida')}
+                  className={`w-full rounded-lg border bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] p-3 ${
+                    errors.unidadMedida ? 'border-red-500' : 'border-[var(--border-color)]'
                   }`}
-                  id="unidad-medida"
-                  value={formulario.unidadMedida}
-                  onChange={(e) => handleInputChange('unidadMedida', e.target.value)}
-                  required
+                  id="unidadMedida"
                 >
-                  <option value="">Seleccione unidad</option>
-                  <option>unidades</option>
-                  <option>cajas</option>
-                  <option>paquetes</option>
-                  <option>litros</option>
-                  <option>gramos</option>
-                  <option>kilogramos</option>
+                  <option value="">Seleccione la unidad</option>
+                  <option value="unidad">Unidad</option>
+                  <option value="caja">Caja</option>
+                  <option value="pack">Pack</option>
+                  <option value="ml">Mililitros (ml)</option>
+                  <option value="gr">Gramos (gr)</option>
+                  <option value="kg">Kilogramos (kg)</option>
                 </select>
-                {errores.unidadMedida && (
-                  <p className="text-red-500 text-xs mt-1">{errores.unidadMedida}</p>
+                {errors.unidadMedida && (
+                  <p className="text-red-500 text-xs mt-1">{errors.unidadMedida.message}</p>
                 )}
               </div>
             </div>
@@ -388,28 +307,26 @@ export default function AgregarProductoPage() {
             <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
               Ubicación y Almacenamiento
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label className="block mb-2 text-sm font-medium text-[var(--text-primary)]" htmlFor="almacen">
                   Almacén *
                 </label>
                 <select
-                  className={`w-full rounded-lg border bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] ${
-                    errores.almacen ? 'border-red-500' : 'border-[var(--border-color)]'
+                  {...register('almacen')}
+                  className={`w-full rounded-lg border bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] p-3 ${
+                    errors.almacen ? 'border-red-500' : 'border-[var(--border-color)]'
                   }`}
                   id="almacen"
-                  value={formulario.almacen}
-                  onChange={(e) => handleInputChange('almacen', e.target.value)}
-                  required
                 >
-                  <option value="">Seleccione almacén</option>
-                  <option>Almacén Principal</option>
-                  <option>Almacén Quirófano</option>
-                  <option>Bodega Refrigerada</option>
-                  <option>Área de Cuarentena</option>
+                  <option value="">Seleccione el almacén</option>
+                  <option value="Almacén Central">Almacén Central</option>
+                  <option value="Almacén Norte">Almacén Norte</option>
+                  <option value="Almacén Sur">Almacén Sur</option>
+                  <option value="Farmacia">Farmacia</option>
                 </select>
-                {errores.almacen && (
-                  <p className="text-red-500 text-xs mt-1">{errores.almacen}</p>
+                {errors.almacen && (
+                  <p className="text-red-500 text-xs mt-1">{errors.almacen.message}</p>
                 )}
               </div>
               
@@ -418,42 +335,48 @@ export default function AgregarProductoPage() {
                   Ubicación Específica
                 </label>
                 <input
-                  className="w-full rounded-lg border-[var(--border-color)] bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]"
+                  {...register('ubicacion')}
+                  className={`w-full rounded-lg border bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] p-3 ${
+                    errors.ubicacion ? 'border-red-500' : 'border-[var(--border-color)]'
+                  }`}
                   id="ubicacion"
-                  placeholder="Ej: Pasillo A - Estante 3"
+                  placeholder="Estante A-1, Pasillo 3"
                   type="text"
-                  value={formulario.ubicacion}
-                  onChange={(e) => handleInputChange('ubicacion', e.target.value)}
                 />
               </div>
               
               <div>
                 <label className="block mb-2 text-sm font-medium text-[var(--text-primary)]" htmlFor="temperatura">
-                  Condiciones de Temperatura
+                  Temperatura de Almacenamiento *
                 </label>
                 <select
-                  className="w-full rounded-lg border-[var(--border-color)] bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]"
+                  {...register('temperatura')}
+                  className={`w-full rounded-lg border bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] p-3 ${
+                    errors.temperatura ? 'border-red-500' : 'border-[var(--border-color)]'
+                  }`}
                   id="temperatura"
-                  value={formulario.temperatura}
-                  onChange={(e) => handleInputChange('temperatura', e.target.value)}
                 >
-                  <option>Temperatura Ambiente</option>
-                  <option>Refrigerado (2-8°C)</option>
-                  <option>Congelado (-18°C)</option>
-                  <option>Ambiente Controlado</option>
+                  <option value="Temperatura Ambiente">Temperatura Ambiente (15-25°C)</option>
+                  <option value="Refrigeración">Refrigeración (2-8°C)</option>
+                  <option value="Congelación">Congelación (-18°C)</option>
+                  <option value="Controlada">Temperatura Controlada</option>
                 </select>
+                {errors.temperatura && (
+                  <p className="text-red-500 text-xs mt-1">{errors.temperatura.message}</p>
+                )}
               </div>
               
               <div>
-                <label className="block mb-2 text-sm font-medium text-[var(--text-primary)]" htmlFor="fecha-vencimiento">
+                <label className="block mb-2 text-sm font-medium text-[var(--text-primary)]" htmlFor="fechaVencimiento">
                   Fecha de Vencimiento
                 </label>
                 <input
-                  className="w-full rounded-lg border-[var(--border-color)] bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]"
-                  id="fecha-vencimiento"
+                  {...register('fechaVencimiento')}
+                  className={`w-full rounded-lg border bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] p-3 ${
+                    errors.fechaVencimiento ? 'border-red-500' : 'border-[var(--border-color)]'
+                  }`}
+                  id="fechaVencimiento"
                   type="date"
-                  value={formulario.fechaVencimiento}
-                  onChange={(e) => handleInputChange('fechaVencimiento', e.target.value)}
                 />
               </div>
             </div>
@@ -466,91 +389,131 @@ export default function AgregarProductoPage() {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block mb-2 text-sm font-medium text-[var(--text-primary)]" htmlFor="precio-costo">
+                <label className="block mb-2 text-sm font-medium text-[var(--text-primary)]" htmlFor="precioCosto">
                   Precio de Costo
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]">$</span>
                   <input
-                    className="w-full rounded-lg border-[var(--border-color)] bg-[var(--surface-color)] pl-8 text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]"
-                    id="precio-costo"
+                    {...register('precioCosto', { 
+                      setValueAs: (value) => {
+                        if (value === '' || value === null || value === undefined) {
+                          return undefined;
+                        }
+                        const num = parseFloat(value);
+                        return isNaN(num) ? undefined : num;
+                      }
+                    })}
+                    className={`w-full rounded-lg border bg-[var(--surface-color)] pl-8 text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] p-3 ${
+                      errors.precioCosto ? 'border-red-500' : 'border-[var(--border-color)]'
+                    }`}
+                    id="precioCosto"
                     placeholder="0.00"
                     type="number"
                     step="0.01"
                     min="0"
-                    value={formulario.precioCosto}
-                    onChange={(e) => handleInputChange('precioCosto', parseFloat(e.target.value) || 0)}
                   />
                 </div>
+                {errors.precioCosto && (
+                  <p className="text-red-500 text-xs mt-1">{errors.precioCosto.message}</p>
+                )}
               </div>
               
               <div>
-                <label className="block mb-2 text-sm font-medium text-[var(--text-primary)]" htmlFor="precio-venta">
+                <label className="block mb-2 text-sm font-medium text-[var(--text-primary)]" htmlFor="precioVenta">
                   Precio de Venta
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]">$</span>
                   <input
-                    className="w-full rounded-lg border-[var(--border-color)] bg-[var(--surface-color)] pl-8 text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]"
-                    id="precio-venta"
+                    {...register('precioVenta', { 
+                      setValueAs: (value) => {
+                        if (value === '' || value === null || value === undefined) {
+                          return undefined;
+                        }
+                        const num = parseFloat(value);
+                        return isNaN(num) ? undefined : num;
+                      }
+                    })}
+                    className={`w-full rounded-lg border bg-[var(--surface-color)] pl-8 text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] p-3 ${
+                      errors.precioVenta ? 'border-red-500' : 'border-[var(--border-color)]'
+                    }`}
+                    id="precioVenta"
                     placeholder="0.00"
                     type="number"
                     step="0.01"
                     min="0"
-                    value={formulario.precioVenta}
-                    onChange={(e) => handleInputChange('precioVenta', parseFloat(e.target.value) || 0)}
                   />
                 </div>
+                {errors.precioVenta && (
+                  <p className="text-red-500 text-xs mt-1">{errors.precioVenta.message}</p>
+                )}
               </div>
               
               <div>
                 <label className="block mb-2 text-sm font-medium text-[var(--text-primary)]" htmlFor="proveedor">
-                  Proveedor Principal
+                  Proveedor Principal *
                 </label>
                 <select
-                  className="w-full rounded-lg border-[var(--border-color)] bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]"
+                  {...register('proveedor')}
+                  className={`w-full rounded-lg border bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] p-3 ${
+                    errors.proveedor ? 'border-red-500' : 'border-[var(--border-color)]'
+                  }`}
                   id="proveedor"
-                  value={formulario.proveedor}
-                  onChange={(e) => handleInputChange('proveedor', e.target.value)}
                 >
-                  <option value="">Seleccione proveedor</option>
-                  <option>Suministros Médicos Global</option>
-                  <option>Equipos Hospitalarios S.A.</option>
-                  <option>Distribuidora MediCare</option>
+                  <option value="">Seleccione el proveedor</option>
+                  <option value="Proveedora Médica SA">Proveedora Médica SA</option>
+                  <option value="Distribuidora Hospitalaria">Distribuidora Hospitalaria</option>
+                  <option value="Suministros Médicos Ltda">Suministros Médicos Ltda</option>
+                  <option value="MediCorp Internacional">MediCorp Internacional</option>
                 </select>
+                {errors.proveedor && (
+                  <p className="text-red-500 text-xs mt-1">{errors.proveedor.message}</p>
+                )}
               </div>
               
               <div>
-                <label className="block mb-2 text-sm font-medium text-[var(--text-primary)]" htmlFor="registro-sanitario">
+                <label className="block mb-2 text-sm font-medium text-[var(--text-primary)]" htmlFor="registroSanitario">
                   Registro Sanitario
                 </label>
                 <input
-                  className="w-full rounded-lg border-[var(--border-color)] bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]"
-                  id="registro-sanitario"
-                  placeholder="Número de registro"
+                  {...register('registroSanitario')}
+                  className={`w-full rounded-lg border bg-[var(--surface-color)] text-[var(--text-primary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)] p-3 ${
+                    errors.registroSanitario ? 'border-red-500' : 'border-[var(--border-color)]'
+                  }`}
+                  id="registroSanitario"
+                  placeholder="INVIMA 2023M-0001234"
                   type="text"
-                  value={formulario.registroSanitario}
-                  onChange={(e) => handleInputChange('registroSanitario', e.target.value)}
                 />
               </div>
             </div>
           </div>
 
-          {/* Botones */}
-          <div className="flex justify-end gap-4 pt-6 border-t border-[var(--border-color)]">
+          {/* Botones de Acción */}
+          <div className="flex gap-4 pt-6 border-t border-[var(--border-color)]">
             <button
               type="button"
               onClick={handleCancelar}
-              className="px-6 py-2 text-sm font-medium border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--border-color)]/50 transition-colors"
+              className="px-6 py-3 border border-[var(--border-color)] text-[var(--text-secondary)] rounded-lg hover:bg-[var(--border-color)] transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              disabled={createMutation.isPending}
-              className="px-6 py-2 text-sm font-medium bg-[var(--primary-color)] text-white rounded-lg hover:bg-[var(--secondary-color)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isSubmitting || createMutation.isPending}
+              className="flex-1 px-6 py-3 bg-[var(--primary-color)] text-white rounded-lg hover:bg-[var(--primary-color-dark)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {createMutation.isPending ? 'Guardando...' : 'Guardar Producto'}
+              {(isSubmitting || createMutation.isPending) ? (
+                <>
+                  <span className="material-symbols-outlined animate-spin">sync</span>
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined">save</span>
+                  Guardar Producto
+                </>
+              )}
             </button>
           </div>
         </form>
