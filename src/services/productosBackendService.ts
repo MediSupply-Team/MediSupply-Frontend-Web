@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 
 // === CONFIGURACIÓN DEL BACKEND ===
-const BACKEND_BASE_URL = '/api/backend'; // Usar proxy para evitar CORS
+const BACKEND_BASE_URL = 'https://medisupply-backend.duckdns.org'; // Llamadas directas al backend
 
 export interface CrearProductoBackend {
   id: string;
