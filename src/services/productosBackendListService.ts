@@ -33,6 +33,9 @@ export interface ProductosBackendResponse {
  */
 class ProductosBackendListService {
   private baseUrl: string;
+  private cacheProductos: ProductoBackendResponse[] | null = null;
+  private cacheTimestamp: number = 0;
+  private cacheDurationMs = 2 * 60 * 1000; // 2 minutos
 
   constructor(baseUrl: string = BACKEND_BASE_URL) {
     this.baseUrl = baseUrl;
@@ -175,62 +178,112 @@ class ProductosBackendListService {
   /**
    * Construye parámetros de query para el backend
    */
-  private construirParams(filtros?: FiltrosInventario): URLSearchParams {
+  private construirParams(page = 1, size = 50): URLSearchParams {
     const params = new URLSearchParams();
     
-    // Paginación
-    params.set('page', (filtros?.page || 1).toString());
-    params.set('size', (filtros?.limit || 10).toString());
+    params.set('page', page.toString());
+    params.set('size', size.toString());
     
-    // Búsqueda por nombre o código
-    if (filtros?.busqueda) {
-      // El backend podría tener parámetros específicos para búsqueda
-      // Por ahora usamos un parámetro genérico
-      params.set('search', filtros.busqueda);
+    return params;
+  }
+
+  /**
+   * Obtiene TODOS los productos del backend haciendo múltiples llamadas si es necesario
+   */
+  private async obtenerTodosLosProductos(filtros?: FiltrosInventario): Promise<ProductoBackendResponse[]> {
+    // Verificar cache (solo para productos sin filtro de categoría para simplicidad)
+    const ahoraMs = Date.now();
+    const usarCache = !filtros?.categoria || filtros.categoria === 'Todas las categorías';
+    
+    if (usarCache && this.cacheProductos && (ahoraMs - this.cacheTimestamp) < this.cacheDurationMs) {
+      console.log('Usando productos desde cache');
+      return this.cacheProductos;
     }
-    
-    // Categoría (mapear de UI a backend)
+
+    const maxSize = 50; // Límite máximo del backend
+    let page = 1;
+    let todosLosProductos: ProductoBackendResponse[] = [];
+    let hayMasPaginas = true;
+
+    // Construir parámetros base (solo categoría si existe)
+    const baseParams = new URLSearchParams();
     if (filtros?.categoria && filtros.categoria !== 'Todas las categorías') {
       const mapeoCategoria: Record<string, string> = {
         'Equipos Médicos': 'MEDICAL_EQUIPMENT',
         'Insumos Descartables': 'DISPOSABLES',
-        'Medicamentos': 'ANALGESICS', // Usamos ANALGESICS como categoría base
+        'Medicamentos': 'ANALGESICS',
         'Material Quirúrgico': 'SURGICAL',
         'Equipos de Protección': 'PROTECTION'
       };
       
       const categoriaBackend = mapeoCategoria[filtros.categoria];
       if (categoriaBackend) {
-        params.set('categoria', categoriaBackend);
+        baseParams.set('categoria', categoriaBackend);
       }
     }
+
+    console.log('Obteniendo todos los productos del backend...');
+
+    while (hayMasPaginas) {
+      const params = new URLSearchParams(baseParams);
+      params.set('page', page.toString());
+      params.set('size', maxSize.toString());
+      
+      const endpoint = `/venta/api/v1/catalog/items?${params.toString()}`;
+      
+      try {
+        console.log(`Página ${page}: ${this.baseUrl}${endpoint}`);
+        const response = await this.request<ProductosBackendResponse>(endpoint);
+        
+        todosLosProductos = [...todosLosProductos, ...response.items];
+        
+        console.log(`Página ${page}: ${response.items.length} productos, total acumulado: ${todosLosProductos.length}`);
+        
+        // Verificar si hay más páginas
+        const totalPaginas = Math.ceil(response.meta.total / maxSize);
+        hayMasPaginas = page < totalPaginas;
+        page++;
+        
+      } catch (error) {
+        console.error(`Error obteniendo página ${page}:`, error);
+        break;
+      }
+    }
+
+    console.log(`Total productos obtenidos: ${todosLosProductos.length}`);
     
-    return params;
+    // Guardar en cache solo si no hay filtro de categoría
+    if (usarCache) {
+      this.cacheProductos = todosLosProductos;
+      this.cacheTimestamp = ahoraMs;
+      console.log('Productos guardados en cache');
+    }
+    
+    return todosLosProductos;
   }
 
   /**
-   * Obtiene productos desde el backend
+   * Aplica filtros de búsqueda localmente
    */
-  async obtenerProductos(filtros?: FiltrosInventario): Promise<ProductosResponse> {
-    const params = this.construirParams(filtros);
-    const endpoint = `/venta/api/v1/catalog/items?${params.toString()}`;
+  private aplicarFiltrosBusqueda(productos: Producto[], filtros?: FiltrosInventario): Producto[] {
+    let productosFiltrados = [...productos];
     
-    console.log('Obteniendo productos desde backend:', `${this.baseUrl}${endpoint}`);
+    // Filtro de búsqueda por nombre, SKU o código
+    if (filtros?.busqueda && filtros.busqueda.trim()) {
+      const busqueda = filtros.busqueda.toLowerCase().trim();
+      productosFiltrados = productosFiltrados.filter(producto => 
+        producto.nombre.toLowerCase().includes(busqueda) ||
+        producto.sku.toLowerCase().includes(busqueda) ||
+        (producto.descripcion && producto.descripcion.toLowerCase().includes(busqueda))
+      );
+    }
     
-    const response = await this.request<ProductosBackendResponse>(endpoint);
-    
-    // Convertir respuesta del backend al formato de la UI
-    const productosUI = response.items.map(item => this.convertirProductoBackendToUI(item));
-    
-    // Aplicar filtros adicionales que el backend no soporte
-    let productosFiltrados = productosUI;
-    
-    // Filtro de stock bajo (cliente)
+    // Filtro de stock bajo
     if (filtros?.stockBajo) {
       productosFiltrados = productosFiltrados.filter(p => p.estadoStock === 'stock-bajo');
     }
     
-    // Filtro de próximo a vencer (cliente) - productos que vencen en 30 días
+    // Filtro de próximo a vencer - productos que vencen en 30 días
     if (filtros?.proximoVencer) {
       const fechaLimite = new Date();
       fechaLimite.setDate(fechaLimite.getDate() + 30);
@@ -247,9 +300,40 @@ class ProductosBackendListService {
       productosFiltrados = productosFiltrados.filter(p => p.stock > 1000);
     }
     
+    return productosFiltrados;
+  }
+
+  /**
+   * Obtiene productos desde el backend
+   */
+  async obtenerProductos(filtros?: FiltrosInventario): Promise<ProductosResponse> {
+    console.log('Filtros aplicados:', {
+      busqueda: filtros?.busqueda,
+      categoria: filtros?.categoria,
+      page: filtros?.page,
+      limit: filtros?.limit,
+      stockBajo: filtros?.stockBajo,
+      proximoVencer: filtros?.proximoVencer,
+      masSolicitados: filtros?.masSolicitados
+    });
+    
+    // Siempre traer todos los productos para hacer filtrado local
+    const todosLosProductosBackend = await this.obtenerTodosLosProductos(filtros);
+    
+    // Convertir respuesta del backend al formato de la UI
+    const productosUI = todosLosProductosBackend.map(item => this.convertirProductoBackendToUI(item));
+    
+    console.log(`Productos convertidos a UI: ${productosUI.length}`);
+    
+    // Aplicar filtros locales (búsqueda, stock bajo, etc.)
+    const productosFiltrados = this.aplicarFiltrosBusqueda(productosUI, filtros);
+    
+    console.log(`Productos después del filtrado: ${productosFiltrados.length}`);
+    
     // Ordenamiento (cliente)
+    let productosOrdenados = productosFiltrados;
     if (filtros?.ordenarPor) {
-      productosFiltrados.sort((a, b) => {
+      productosOrdenados = [...productosFiltrados].sort((a, b) => {
         switch (filtros.ordenarPor) {
           case 'nombre':
             return a.nombre.localeCompare(b.nombre);
@@ -258,7 +342,6 @@ class ProductosBackendListService {
           case 'ubicacion':
             return a.ubicacion.localeCompare(b.ubicacion);
           case 'actualizacion':
-            // Como no tenemos fecha de actualización, usar nombre
             return a.nombre.localeCompare(b.nombre);
           default:
             return 0;
@@ -266,13 +349,32 @@ class ProductosBackendListService {
       });
     }
     
-    return {
-      data: productosFiltrados,
-      page: response.meta.page,
-      limit: response.meta.size,
-      total: response.meta.total,
-      totalPages: Math.ceil(response.meta.total / response.meta.size),
+    // Calcular paginación local
+    const totalFiltrados = productosOrdenados.length;
+    const page = filtros?.page || 1;
+    const limit = filtros?.limit || 10;
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const datosPaginados = productosOrdenados.slice(startIndex, endIndex);
+    
+    const resultado = {
+      data: datosPaginados,
+      page: page,
+      limit: limit,
+      total: totalFiltrados,
+      totalPages: Math.ceil(totalFiltrados / limit),
     };
+    
+    console.log('Resultado final:', {
+      totalProductos: todosLosProductosBackend.length,
+      totalFiltrado: totalFiltrados,
+      page: page,
+      totalPages: resultado.totalPages,
+      datosEnPagina: datosPaginados.length,
+      rango: `${startIndex + 1}-${Math.min(endIndex, totalFiltrados)} de ${totalFiltrados}`
+    });
+    
+    return resultado;
   }
 }
 

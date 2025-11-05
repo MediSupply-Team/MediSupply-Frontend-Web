@@ -117,12 +117,22 @@ export default function ProductosPage() {
                 search
               </span>
               <input
-                className="w-full rounded-lg border-[var(--border-color)] bg-[var(--surface-color)] pl-10 pr-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]"
+                className="w-full rounded-lg border-[var(--border-color)] bg-[var(--surface-color)] pl-10 pr-10 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]"
                 placeholder="Buscar por nombre, SKU, código de barras..."
                 type="search"
                 value={filtros.busqueda || ''}
                 onChange={(e) => handleFiltroChange('busqueda', e.target.value)}
               />
+              {filtros.busqueda && (
+                <button
+                  onClick={() => handleFiltroChange('busqueda', '')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                  type="button"
+                  title="Limpiar búsqueda"
+                >
+                  <span className="material-symbols-outlined text-lg">close</span>
+                </button>
+              )}
             </div>
           </div>
           <div>
@@ -210,7 +220,11 @@ export default function ProductosPage() {
             Resultados de búsqueda
           </h3>
           <p className="text-sm text-[var(--text-secondary)]">
-            {isLoading ? 'Cargando...' : `Se encontraron ${productos?.total || 0} productos`}
+            {isLoading ? 'Cargando...' : 
+             filtros.busqueda ? 
+               `Se encontraron ${productos?.total || 0} productos para "${filtros.busqueda}"` :
+               `Se encontraron ${productos?.total || 0} productos`
+            }
           </p>
         </div>
         
@@ -218,7 +232,9 @@ export default function ProductosPage() {
         {isLoading && (
           <div className="text-center py-8 text-[var(--text-secondary)]">
             <span className="material-symbols-outlined animate-spin text-2xl">refresh</span>
-            <p className="mt-2">Cargando productos...</p>
+            <p className="mt-2">
+              {filtros.busqueda ? `Buscando "${filtros.busqueda}"...` : 'Cargando productos...'}
+            </p>
           </div>
         )}
         
@@ -226,6 +242,28 @@ export default function ProductosPage() {
           <div className="text-center py-8 text-red-500">
             <span className="material-symbols-outlined text-2xl">error</span>
             <p className="mt-2">Error: {error.message}</p>
+          </div>
+        )}
+
+        {/* Sin resultados */}
+        {productos && !isLoading && productos.data.length === 0 && (
+          <div className="text-center py-12 text-[var(--text-secondary)]">
+            <span className="material-symbols-outlined text-4xl mb-4 opacity-50">search_off</span>
+            <h3 className="text-lg font-medium mb-2">No se encontraron productos</h3>
+            <p className="text-sm">
+              {filtros.busqueda 
+                ? `No hay productos que coincidan con "${filtros.busqueda}"`
+                : 'No hay productos disponibles con los filtros aplicados'
+              }
+            </p>
+            {filtros.busqueda && (
+              <button
+                onClick={() => handleFiltroChange('busqueda', '')}
+                className="mt-4 px-4 py-2 text-sm bg-[var(--primary-color)] text-white rounded-lg hover:opacity-90 transition-colors"
+              >
+                Limpiar búsqueda
+              </button>
+            )}
           </div>
         )}
 
