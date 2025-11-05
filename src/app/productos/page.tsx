@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useProductos } from '@/hooks/useProductos';
+import { useProductosBackend } from '@/hooks/useProductos';
 import { useNotifications } from '@/store/appStore';
-import type { FiltrosInventario } from '@/types';
+import type { FiltrosInventario, Producto } from '@/types';
 
 export default function ProductosPage() {
   // === ESTADO LOCAL ===
@@ -22,7 +22,7 @@ export default function ProductosPage() {
   });
 
   // === HOOKS ===
-  const { data: productos, isLoading, error } = useProductos(filtros);
+  const { data: productos, isLoading, error } = useProductosBackend(filtros);
   const { addNotification } = useNotifications();
 
   // === HANDLERS ===
@@ -260,7 +260,7 @@ export default function ProductosPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border-color)]">
-                  {productos.data.map((producto) => (
+                  {productos.data.map((producto: Producto) => (
                     <tr key={producto.id} className="hover:bg-[var(--border-color)]/30 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">

@@ -6,6 +6,7 @@ import {
   deleteProducto 
 } from '@/services/productosService';
 import { crearProductoBackend } from '@/services/productosBackendService';
+import { obtenerProductosBackend } from '@/services/productosBackendListService';
 import type { Producto, FiltrosInventario } from '@/types';
 import type { FormularioProducto } from '@/services/productosBackendService';
 
@@ -25,6 +26,18 @@ export const useProductos = (filtros?: FiltrosInventario) => {
   return useQuery({
     queryKey: productosKeys.list(filtros),
     queryFn: () => getProductos(filtros),
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    gcTime: 10 * 60 * 1000,   // 10 minutos
+  });
+};
+
+/**
+ * Hook para obtener productos desde el backend real
+ */
+export const useProductosBackend = (filtros?: FiltrosInventario) => {
+  return useQuery({
+    queryKey: [...productosKeys.list(filtros), 'backend'],
+    queryFn: () => obtenerProductosBackend(filtros),
     staleTime: 5 * 60 * 1000, // 5 minutos
     gcTime: 10 * 60 * 1000,   // 10 minutos
   });

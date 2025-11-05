@@ -192,7 +192,9 @@ export const getProductos = async (
             case 'ubicacion':
               return a.ubicacion.localeCompare(b.ubicacion);
             case 'actualizacion':
-              return new Date(b.fechaActualizacion).getTime() - new Date(a.fechaActualizacion).getTime();
+              const fechaA = a.fechaActualizacion || a.fechaCreacion || new Date().toISOString();
+              const fechaB = b.fechaActualizacion || b.fechaCreacion || new Date().toISOString();
+              return new Date(fechaB).getTime() - new Date(fechaA).getTime();
             default:
               return 0;
           }
