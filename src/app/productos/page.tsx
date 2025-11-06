@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useProductos } from '@/hooks/useProductos';
+import { useProductosBackend } from '@/hooks/useProductos';
 import { useNotifications } from '@/store/appStore';
-import type { FiltrosInventario } from '@/types';
+import ModalRegistroMovimiento from '@/components/ModalRegistroMovimiento';
+import type { FiltrosInventario, Producto } from '@/types';
 
 export default function ProductosPage() {
   // === ESTADO LOCAL ===
@@ -21,8 +22,27 @@ export default function ProductosPage() {
     limit: 10,
   });
 
+  // Estados para el modal de movimientos
+  const [modalMovimiento, setModalMovimiento] = useState<{
+    isOpen: boolean;
+    productoId: string;
+    productoNombre: string;
+    tipoMovimiento: 'INGRESO' | 'SALIDA';
+  }>({
+    isOpen: false,
+    productoId: '',
+    productoNombre: '',
+    tipoMovimiento: 'INGRESO',
+  });
+
+  // Estado para el menú desplegable de acciones
+  const [menuAbiertoId, setMenuAbiertoId] = useState<string | null>(null);
+
+  // Estado para indicar actualización
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
   // === HOOKS ===
-  const { data: productos, isLoading, error } = useProductos(filtros);
+  const { data: productos, isLoading, error, refetch } = useProductosBackend(filtros);
   const { addNotification } = useNotifications();
 
   // === HANDLERS ===
@@ -49,6 +69,42 @@ export default function ProductosPage() {
   const handlePagination = (newPage: number) => {
     setFiltros(prev => ({ ...prev, page: newPage }));
   };
+
+  const handleAbrirModal = (producto: Producto, tipo: 'INGRESO' | 'SALIDA') => {
+    setModalMovimiento({
+      isOpen: true,
+      productoId: producto.id,
+      productoNombre: producto.nombre,
+      tipoMovimiento: tipo,
+    });
+    setMenuAbiertoId(null); // Cerrar el menú
+  };
+
+  const handleCerrarModal = () => {
+    setModalMovimiento({
+      isOpen: false,
+      productoId: '',
+      productoNombre: '',
+      tipoMovimiento: 'INGRESO',
+    });
+  };
+
+  const toggleMenu = (productoId: string) => {
+    setMenuAbiertoId(menuAbiertoId === productoId ? null : productoId);
+  };
+
+  // Cerrar menú al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.menu-acciones')) {
+        setMenuAbiertoId(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const getEstadoClase = (estado: string) => {
     switch (estado) {
@@ -117,12 +173,22 @@ export default function ProductosPage() {
                 search
               </span>
               <input
-                className="w-full rounded-lg border-[var(--border-color)] bg-[var(--surface-color)] pl-10 pr-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]"
+                className="w-full rounded-lg border-[var(--border-color)] bg-[var(--surface-color)] pl-10 pr-10 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary-color)] focus:ring-[var(--primary-color)]"
                 placeholder="Buscar por nombre, SKU, código de barras..."
                 type="search"
                 value={filtros.busqueda || ''}
                 onChange={(e) => handleFiltroChange('busqueda', e.target.value)}
               />
+              {filtros.busqueda && (
+                <button
+                  onClick={() => handleFiltroChange('busqueda', '')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                  type="button"
+                  title="Limpiar búsqueda"
+                >
+                  <span className="material-symbols-outlined text-lg">close</span>
+                </button>
+              )}
             </div>
           </div>
           <div>
@@ -210,7 +276,11 @@ export default function ProductosPage() {
             Resultados de búsqueda
           </h3>
           <p className="text-sm text-[var(--text-secondary)]">
-            {isLoading ? 'Cargando...' : `Se encontraron ${productos?.total || 0} productos`}
+            {isLoading ? 'Cargando...' : 
+             filtros.busqueda ? 
+               `Se encontraron ${productos?.total || 0} productos para "${filtros.busqueda}"` :
+               `Se encontraron ${productos?.total || 0} productos`
+            }
           </p>
         </div>
         
@@ -218,7 +288,9 @@ export default function ProductosPage() {
         {isLoading && (
           <div className="text-center py-8 text-[var(--text-secondary)]">
             <span className="material-symbols-outlined animate-spin text-2xl">refresh</span>
-            <p className="mt-2">Cargando productos...</p>
+            <p className="mt-2">
+              {filtros.busqueda ? `Buscando "${filtros.busqueda}"...` : 'Cargando productos...'}
+            </p>
           </div>
         )}
         
@@ -229,9 +301,41 @@ export default function ProductosPage() {
           </div>
         )}
 
+        {/* Sin resultados */}
+        {productos && !isLoading && productos.data.length === 0 && (
+          <div className="text-center py-12 text-[var(--text-secondary)]">
+            <span className="material-symbols-outlined text-4xl mb-4 opacity-50">search_off</span>
+            <h3 className="text-lg font-medium mb-2">No se encontraron productos</h3>
+            <p className="text-sm">
+              {filtros.busqueda 
+                ? `No hay productos que coincidan con "${filtros.busqueda}"`
+                : 'No hay productos disponibles con los filtros aplicados'
+              }
+            </p>
+            {filtros.busqueda && (
+              <button
+                onClick={() => handleFiltroChange('busqueda', '')}
+                className="mt-4 px-4 py-2 text-sm bg-[var(--primary-color)] text-white rounded-lg hover:opacity-90 transition-colors"
+              >
+                Limpiar búsqueda
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Tabla de productos */}
         {productos && !isLoading && (
-          <>
+          <div className="relative">
+            {/* Indicador de actualización */}
+            {isRefreshing && (
+              <div className="absolute inset-0 bg-white/50 backdrop-blur-sm flex items-center justify-center z-10">
+                <div className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+                  <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+                  <span>Actualizando tabla...</span>
+                </div>
+              </div>
+            )}
+            
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead className="bg-[var(--background-color)]">
@@ -260,7 +364,7 @@ export default function ProductosPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border-color)]">
-                  {productos.data.map((producto) => (
+                  {productos.data.map((producto: Producto) => (
                     <tr key={producto.id} className="hover:bg-[var(--border-color)]/30 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -310,16 +414,34 @@ export default function ProductosPage() {
                         {producto.fechaVencimiento || '-'}
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <button 
-                          onClick={() => addNotification({
-                            tipo: 'info',
-                            titulo: 'Función en desarrollo',
-                            mensaje: `Acciones para ${producto.nombre} estarán disponibles pronto`,
-                          })}
-                          className="text-[var(--text-secondary)] hover:text-[var(--primary-color)] transition-colors"
-                        >
-                          <span className="material-symbols-outlined">more_vert</span>
-                        </button>
+                        <div className="relative menu-acciones">
+                          <button 
+                            onClick={() => toggleMenu(producto.id)}
+                            className="text-[var(--text-secondary)] hover:text-[var(--primary-color)] transition-colors"
+                          >
+                            <span className="material-symbols-outlined">more_vert</span>
+                          </button>
+                          
+                          {/* Menú desplegable */}
+                          {menuAbiertoId === producto.id && (
+                            <div className="absolute right-0 mt-2 w-56 bg-[var(--surface-color)] border border-[var(--border-color)] rounded-lg shadow-lg z-10">
+                              <button
+                                onClick={() => handleAbrirModal(producto, 'INGRESO')}
+                                className="w-full px-4 py-3 text-left text-sm text-[var(--text-primary)] hover:bg-[var(--border-color)]/50 transition-colors flex items-center gap-2 first:rounded-t-lg"
+                              >
+                                <span className="material-symbols-outlined text-[var(--accent-color)]">add_circle</span>
+                                <span>Registrar Ingreso (compra)</span>
+                              </button>
+                              <button
+                                onClick={() => handleAbrirModal(producto, 'SALIDA')}
+                                className="w-full px-4 py-3 text-left text-sm text-[var(--text-primary)] hover:bg-[var(--border-color)]/50 transition-colors flex items-center gap-2 last:rounded-b-lg border-t border-[var(--border-color)]"
+                              >
+                                <span className="material-symbols-outlined text-[var(--accent-red)]">remove_circle</span>
+                                <span>Registrar Salida (venta)</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -349,9 +471,34 @@ export default function ProductosPage() {
                 </button>
               </div>
             </div>
-          </>
+          </div>
         )}
       </div>
+
+      {/* Modal de Registro de Movimiento */}
+      <ModalRegistroMovimiento
+        isOpen={modalMovimiento.isOpen}
+        onClose={handleCerrarModal}
+        productoId={modalMovimiento.productoId}
+        productoNombre={modalMovimiento.productoNombre}
+        tipoMovimiento={modalMovimiento.tipoMovimiento}
+        onSuccess={async () => {
+          // Mostrar indicador de actualización
+          setIsRefreshing(true);
+          
+          // Refrescar la lista de productos
+          await refetch();
+          
+          // Ocultar indicador
+          setIsRefreshing(false);
+          
+          addNotification({
+            tipo: 'success',
+            titulo: 'Inventario actualizado',
+            mensaje: 'Los cambios se han reflejado en la tabla',
+          });
+        }}
+      />
     </div>
   );
 }
