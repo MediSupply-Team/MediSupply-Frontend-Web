@@ -38,8 +38,11 @@ export default function ProductosPage() {
   // Estado para el menú desplegable de acciones
   const [menuAbiertoId, setMenuAbiertoId] = useState<string | null>(null);
 
+  // Estado para indicar actualización
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
   // === HOOKS ===
-  const { data: productos, isLoading, error } = useProductosBackend(filtros);
+  const { data: productos, isLoading, error, refetch } = useProductosBackend(filtros);
   const { addNotification } = useNotifications();
 
   // === HANDLERS ===
@@ -322,7 +325,17 @@ export default function ProductosPage() {
 
         {/* Tabla de productos */}
         {productos && !isLoading && (
-          <>
+          <div className="relative">
+            {/* Indicador de actualización */}
+            {isRefreshing && (
+              <div className="absolute inset-0 bg-white/50 backdrop-blur-sm flex items-center justify-center z-10">
+                <div className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+                  <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+                  <span>Actualizando tabla...</span>
+                </div>
+              </div>
+            )}
+            
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead className="bg-[var(--background-color)]">
@@ -458,7 +471,7 @@ export default function ProductosPage() {
                 </button>
               </div>
             </div>
-          </>
+          </div>
         )}
       </div>
 
@@ -469,12 +482,20 @@ export default function ProductosPage() {
         productoId={modalMovimiento.productoId}
         productoNombre={modalMovimiento.productoNombre}
         tipoMovimiento={modalMovimiento.tipoMovimiento}
-        onSuccess={() => {
-          // Aquí podrías refrescar la lista de productos si es necesario
+        onSuccess={async () => {
+          // Mostrar indicador de actualización
+          setIsRefreshing(true);
+          
+          // Refrescar la lista de productos
+          await refetch();
+          
+          // Ocultar indicador
+          setIsRefreshing(false);
+          
           addNotification({
             tipo: 'success',
-            titulo: 'Movimiento registrado',
-            mensaje: 'El inventario ha sido actualizado',
+            titulo: 'Inventario actualizado',
+            mensaje: 'Los cambios se han reflejado en la tabla',
           });
         }}
       />
