@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useProductosBackend } from '@/hooks/useProductos';
 import { useNotifications } from '@/store/appStore';
+import ModalRegistroMovimiento from '@/components/ModalRegistroMovimiento';
 import type { FiltrosInventario, Producto } from '@/types';
 
 export default function ProductosPage() {
@@ -20,6 +21,22 @@ export default function ProductosPage() {
     page: 1,
     limit: 10,
   });
+
+  // Estados para el modal de movimientos
+  const [modalMovimiento, setModalMovimiento] = useState<{
+    isOpen: boolean;
+    productoId: string;
+    productoNombre: string;
+    tipoMovimiento: 'INGRESO' | 'SALIDA';
+  }>({
+    isOpen: false,
+    productoId: '',
+    productoNombre: '',
+    tipoMovimiento: 'INGRESO',
+  });
+
+  // Estado para el menú desplegable de acciones
+  const [menuAbiertoId, setMenuAbiertoId] = useState<string | null>(null);
 
   // === HOOKS ===
   const { data: productos, isLoading, error } = useProductosBackend(filtros);
@@ -49,6 +66,42 @@ export default function ProductosPage() {
   const handlePagination = (newPage: number) => {
     setFiltros(prev => ({ ...prev, page: newPage }));
   };
+
+  const handleAbrirModal = (producto: Producto, tipo: 'INGRESO' | 'SALIDA') => {
+    setModalMovimiento({
+      isOpen: true,
+      productoId: producto.id,
+      productoNombre: producto.nombre,
+      tipoMovimiento: tipo,
+    });
+    setMenuAbiertoId(null); // Cerrar el menú
+  };
+
+  const handleCerrarModal = () => {
+    setModalMovimiento({
+      isOpen: false,
+      productoId: '',
+      productoNombre: '',
+      tipoMovimiento: 'INGRESO',
+    });
+  };
+
+  const toggleMenu = (productoId: string) => {
+    setMenuAbiertoId(menuAbiertoId === productoId ? null : productoId);
+  };
+
+  // Cerrar menú al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.menu-acciones')) {
+        setMenuAbiertoId(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const getEstadoClase = (estado: string) => {
     switch (estado) {
@@ -348,16 +401,34 @@ export default function ProductosPage() {
                         {producto.fechaVencimiento || '-'}
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <button 
-                          onClick={() => addNotification({
-                            tipo: 'info',
-                            titulo: 'Función en desarrollo',
-                            mensaje: `Acciones para ${producto.nombre} estarán disponibles pronto`,
-                          })}
-                          className="text-[var(--text-secondary)] hover:text-[var(--primary-color)] transition-colors"
-                        >
-                          <span className="material-symbols-outlined">more_vert</span>
-                        </button>
+                        <div className="relative menu-acciones">
+                          <button 
+                            onClick={() => toggleMenu(producto.id)}
+                            className="text-[var(--text-secondary)] hover:text-[var(--primary-color)] transition-colors"
+                          >
+                            <span className="material-symbols-outlined">more_vert</span>
+                          </button>
+                          
+                          {/* Menú desplegable */}
+                          {menuAbiertoId === producto.id && (
+                            <div className="absolute right-0 mt-2 w-56 bg-[var(--surface-color)] border border-[var(--border-color)] rounded-lg shadow-lg z-10">
+                              <button
+                                onClick={() => handleAbrirModal(producto, 'INGRESO')}
+                                className="w-full px-4 py-3 text-left text-sm text-[var(--text-primary)] hover:bg-[var(--border-color)]/50 transition-colors flex items-center gap-2 first:rounded-t-lg"
+                              >
+                                <span className="material-symbols-outlined text-[var(--accent-color)]">add_circle</span>
+                                <span>Registrar Ingreso (compra)</span>
+                              </button>
+                              <button
+                                onClick={() => handleAbrirModal(producto, 'SALIDA')}
+                                className="w-full px-4 py-3 text-left text-sm text-[var(--text-primary)] hover:bg-[var(--border-color)]/50 transition-colors flex items-center gap-2 last:rounded-b-lg border-t border-[var(--border-color)]"
+                              >
+                                <span className="material-symbols-outlined text-[var(--accent-red)]">remove_circle</span>
+                                <span>Registrar Salida (venta)</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -390,6 +461,23 @@ export default function ProductosPage() {
           </>
         )}
       </div>
+
+      {/* Modal de Registro de Movimiento */}
+      <ModalRegistroMovimiento
+        isOpen={modalMovimiento.isOpen}
+        onClose={handleCerrarModal}
+        productoId={modalMovimiento.productoId}
+        productoNombre={modalMovimiento.productoNombre}
+        tipoMovimiento={modalMovimiento.tipoMovimiento}
+        onSuccess={() => {
+          // Aquí podrías refrescar la lista de productos si es necesario
+          addNotification({
+            tipo: 'success',
+            titulo: 'Movimiento registrado',
+            mensaje: 'El inventario ha sido actualizado',
+          });
+        }}
+      />
     </div>
   );
 }
