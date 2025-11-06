@@ -59,6 +59,8 @@ export class MovimientosInventarioService {
     try {
       const url = `${BASE_URL}/api/v1/inventory/movements`;
       
+      console.log('Enviando movimiento:', JSON.stringify(movimiento, null, 2));
+      
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -68,8 +70,17 @@ export class MovimientosInventarioService {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { message: errorText };
+        }
+        
+        throw new Error(errorData.message || errorData.detail || `Error ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();

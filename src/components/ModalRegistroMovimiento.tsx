@@ -113,12 +113,16 @@ export default function ModalRegistroMovimiento({
       cantidad: parseInt(formData.cantidad),
       usuario_id: formData.usuario_id,
       referencia_documento: formData.referencia_documento || `${tipoMovimiento}-${Date.now()}`,
-      observaciones: formData.observaciones,
     };
 
     // Agregar fecha_vencimiento solo para INGRESO
     if (tipoMovimiento === 'INGRESO' && formData.fecha_vencimiento) {
       movimiento.fecha_vencimiento = formData.fecha_vencimiento;
+    }
+
+    // Agregar observaciones solo si no está vacío
+    if (formData.observaciones.trim()) {
+      movimiento.observaciones = formData.observaciones;
     }
 
     registrarMovimientoMutation.mutate(movimiento);
