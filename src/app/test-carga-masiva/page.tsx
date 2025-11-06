@@ -162,6 +162,70 @@ export default function TestCargaMasivaPage() {
                 <div className="text-sm text-[var(--text-secondary)]">Total</div>
               </div>
             </div>
+
+            {/* Resumen detallado */}
+            {importResults.resumen && (
+              <div className="mb-4">
+                <h3 className="font-semibold text-[var(--text-primary)] mb-2">Resumen detallado:</h3>
+                <div className="grid grid-cols-5 gap-2 text-xs">
+                  <div className="bg-[var(--background-color)] p-2 rounded text-center">
+                    <div className="font-bold">{importResults.resumen.productos_creados}</div>
+                    <div>Creados</div>
+                  </div>
+                  <div className="bg-[var(--background-color)] p-2 rounded text-center">
+                    <div className="font-bold">{importResults.resumen.productos_actualizados}</div>
+                    <div>Actualizados</div>
+                  </div>
+                  <div className="bg-[var(--background-color)] p-2 rounded text-center">
+                    <div className="font-bold">{importResults.resumen.duplicados}</div>
+                    <div>Duplicados</div>
+                  </div>
+                  <div className="bg-[var(--background-color)] p-2 rounded text-center">
+                    <div className="font-bold">{importResults.resumen.rechazados}</div>
+                    <div>Rechazados</div>
+                  </div>
+                  <div className="bg-[var(--background-color)] p-2 rounded text-center">
+                    <div className="font-bold">{importResults.resumen.exitosos}</div>
+                    <div>Exitosos</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Productos creados y actualizados */}
+            {(importResults.productos_creados?.length > 0 || importResults.productos_actualizados?.length > 0) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                {importResults.productos_creados?.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-[var(--text-primary)] mb-2">
+                      Productos Creados:
+                    </h3>
+                    <div className="bg-[var(--background-color)] rounded p-2 max-h-24 overflow-y-auto text-xs">
+                      {importResults.productos_creados.map((producto: string, index: number) => (
+                        <div key={index} className="text-[var(--accent-color)] font-mono">
+                          {producto}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {importResults.productos_actualizados?.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-[var(--text-primary)] mb-2">
+                      Productos Actualizados:
+                    </h3>
+                    <div className="bg-[var(--background-color)] rounded p-2 max-h-24 overflow-y-auto text-xs">
+                      {importResults.productos_actualizados.map((producto: string, index: number) => (
+                        <div key={index} className="text-[var(--primary-color)] font-mono">
+                          {producto}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             
             {importResults.errorDetails && importResults.errorDetails.length > 0 && (
               <div>
@@ -185,17 +249,26 @@ export default function TestCargaMasivaPage() {
           </h2>
           
           <div className="space-y-2 text-sm text-[var(--text-secondary)]">
-            <div><strong>Endpoint:</strong> https://medisupply-backend.duckdns.org/venta/api/v1/catalog/items/bulk-upload</div>
+            <div><strong>1. Endpoint Upload:</strong> https://medisupply-backend.duckdns.org/venta/api/v1/catalog/items/bulk-upload</div>
             <div><strong>Parámetros:</strong> proveedor_id=PROV001&reemplazar_duplicados=true</div>
-            <div><strong>Método:</strong> POST</div>
-            <div><strong>Body:</strong> FormData con archivo Excel/CSV</div>
+            <div><strong>Método:</strong> POST con FormData</div>
+            <div><strong>Respuesta:</strong> task_id y status_url</div>
+            <div className="mt-3"><strong>2. Endpoint Status:</strong> https://medisupply-backend.duckdns.org/venta/api/v1/catalog/bulk-upload/status/[task_id]</div>
+            <div><strong>Método:</strong> GET</div>
+            <div><strong>Polling:</strong> Cada 2 segundos hasta status=&apos;completed&apos; o &apos;failed&apos;</div>
             <div><strong>Plantilla disponible:</strong> /ejemplo_carga_masiva_postman.xlsx</div>
           </div>
           
           <button
             onClick={() => {
-              console.log('Endpoint completo:', 'https://medisupply-backend.duckdns.org/venta/api/v1/catalog/items/bulk-upload?proveedor_id=PROV001&reemplazar_duplicados=true');
+              console.log('=== INFORMACIÓN DE ENDPOINTS ===');
+              console.log('Upload endpoint:', 'https://medisupply-backend.duckdns.org/venta/api/v1/catalog/items/bulk-upload?proveedor_id=PROV001&reemplazar_duplicados=true');
+              console.log('Status endpoint pattern:', 'https://medisupply-backend.duckdns.org/venta/api/v1/catalog/bulk-upload/status/[task_id]');
               console.log('Servicio CargaMasivaService:', CargaMasivaService);
+              console.log('=== PROCESO ASÍNCRONO ===');
+              console.log('1. POST archivo → recibe task_id');
+              console.log('2. GET status cada 2s → hasta completed/failed');
+              console.log('3. Mostrar resultados finales');
             }}
             className="mt-4 px-4 py-2 bg-[var(--text-secondary)] text-white rounded-lg hover:bg-[var(--text-primary)] transition-colors"
           >

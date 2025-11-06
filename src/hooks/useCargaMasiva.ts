@@ -8,6 +8,13 @@ interface UploadProgress {
   validatingData: boolean;
   importing: boolean;
   completed: boolean;
+  currentStatus?: string;
+  progress?: {
+    processed: number;
+    total: number;
+    successful: number;
+    failed: number;
+  };
 }
 
 interface ImportResults {
@@ -15,6 +22,16 @@ interface ImportResults {
   errors: number;
   total: number;
   errorDetails: string[];
+  productos_creados: string[];
+  productos_actualizados: string[];
+  resumen: {
+    duplicados: number;
+    exitosos: number;
+    productos_actualizados: number;
+    productos_creados: number;
+    rechazados: number;
+    total: number;
+  };
 }
 
 export function useCargaMasiva() {
@@ -29,19 +46,68 @@ export function useCargaMasiva() {
 
   const cargaMasivaMutation = useMutation({
     mutationFn: async (archivo: File) => {
-      // Simular las fases de validación
-      setUploadProgress({ validatingStructure: true, validatingData: false, importing: false, completed: false });
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Resetear progreso
+      setUploadProgress({ 
+        validatingStructure: true, 
+        validatingData: false, 
+        importing: false, 
+        completed: false,
+        currentStatus: 'Subiendo archivo...'
+      });
 
-      setUploadProgress({ validatingStructure: false, validatingData: true, importing: false, completed: false });
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      setUploadProgress({ validatingStructure: false, validatingData: false, importing: true, completed: false });
-      
-      // Hacer la llamada real al backend
-      const response = await CargaMasivaService.cargarProductosMasivamente(archivo);
-      
-      setUploadProgress({ validatingStructure: false, validatingData: false, importing: false, completed: true });
+      // Usar el método completo que maneja todo el proceso
+      const response = await CargaMasivaService.procesarCargaMasivaCompleta(
+        archivo,
+        'PROV001',
+        true,
+        (status) => {
+          // Callback para actualizar progreso en tiempo real
+          const progress = status.progress;
+          
+          switch (status.status) {
+            case 'pending':
+              setUploadProgress({
+                validatingStructure: false,
+                validatingData: true,
+                importing: false,
+                completed: false,
+                currentStatus: 'Archivo en cola de procesamiento...',
+                progress,
+              });
+              break;
+            case 'processing':
+              setUploadProgress({
+                validatingStructure: false,
+                validatingData: false,
+                importing: true,
+                completed: false,
+                currentStatus: `Procesando productos... (${progress.processed}/${progress.total})`,
+                progress,
+              });
+              break;
+            case 'completed':
+              setUploadProgress({
+                validatingStructure: false,
+                validatingData: false,
+                importing: false,
+                completed: true,
+                currentStatus: 'Procesamiento completado',
+                progress,
+              });
+              break;
+            case 'failed':
+              setUploadProgress({
+                validatingStructure: false,
+                validatingData: false,
+                importing: false,
+                completed: false,
+                currentStatus: 'Error en el procesamiento',
+                progress,
+              });
+              break;
+          }
+        }
+      );
       
       return response;
     },
@@ -83,6 +149,8 @@ export function useCargaMasiva() {
       validatingData: false,
       importing: false,
       completed: false,
+      currentStatus: undefined,
+      progress: undefined,
     });
     setImportResults(null);
     cargaMasivaMutation.reset();
