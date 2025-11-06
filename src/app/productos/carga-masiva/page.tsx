@@ -3,38 +3,25 @@
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useNotifications } from '@/store/appStore';
-
-interface UploadProgress {
-  validatingStructure: boolean;
-  validatingData: boolean;
-  importing: boolean;
-  completed: boolean;
-}
-
-interface ImportResults {
-  imported: number;
-  errors: number;
-  total: number;
-  errorDetails: string[];
-}
+import { useCargaMasiva } from '@/hooks/useCargaMasiva';
 
 export default function CargaMasivaPage() {
   // === ESTADO LOCAL ===
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<UploadProgress>({
-    validatingStructure: false,
-    validatingData: false,
-    importing: false,
-    completed: false,
-  });
-  const [importResults, setImportResults] = useState<ImportResults | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
   // === HOOKS ===
   const { addNotification } = useNotifications();
+  const {
+    isUploading,
+    uploadProgress,
+    importResults,
+    iniciarCargaMasiva,
+    resetUpload,
+    descargarPlantilla,
+  } = useCargaMasiva();
 
   // === HANDLERS ===
   const handleFileSelect = (file: File) => {
@@ -99,61 +86,6 @@ export default function CargaMasivaPage() {
     }
   };
 
-  const simulateImport = async () => {
-    setIsUploading(true);
-    setUploadProgress({
-      validatingStructure: true,
-      validatingData: false,
-      importing: false,
-      completed: false,
-    });
-
-    // Simular validación de estructura
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setUploadProgress(prev => ({
-      ...prev,
-      validatingStructure: false,
-      validatingData: true,
-    }));
-
-    // Simular validación de datos
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setUploadProgress(prev => ({
-      ...prev,
-      validatingData: false,
-      importing: true,
-    }));
-
-    // Simular importación
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    setUploadProgress(prev => ({
-      ...prev,
-      importing: false,
-      completed: true,
-    }));
-
-    // Mostrar resultados simulados
-    setImportResults({
-      imported: 485,
-      errors: 65,
-      total: 550,
-      errorDetails: [
-        'Fila 12: SKU duplicado "JER-10ML-001"',
-        'Fila 25: Categoría inválida "Equipos Medicos" (debe ser "Equipos Médicos")',
-        'Fila 38: Campo obligatorio "Nombre del Producto" vacío',
-        'Fila 42: Precio inválido "abc" (debe ser numérico)',
-        'Fila 67: Fecha de vencimiento inválida "32/13/2024"',
-      ]
-    });
-
-    setIsUploading(false);
-    addNotification({
-      tipo: 'success',
-      titulo: 'Importación completada',
-      mensaje: '485 productos importados exitosamente',
-    });
-  };
-
   const handleStartImport = () => {
     if (!selectedFile) {
       addNotification({
@@ -164,31 +96,15 @@ export default function CargaMasivaPage() {
       return;
     }
 
-    simulateImport();
+    iniciarCargaMasiva(selectedFile);
   };
 
-  const resetUpload = () => {
+  const handleResetUpload = () => {
     setSelectedFile(null);
-    setIsUploading(false);
-    setUploadProgress({
-      validatingStructure: false,
-      validatingData: false,
-      importing: false,
-      completed: false,
-    });
-    setImportResults(null);
+    resetUpload();
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  };
-
-  const downloadTemplate = () => {
-    addNotification({
-      tipo: 'info',
-      titulo: 'Descarga iniciada',
-      mensaje: 'La plantilla Excel se descargará automáticamente',
-    });
-    // Aquí implementarías la descarga real del template
   };
 
   return (
@@ -237,7 +153,7 @@ export default function CargaMasivaPage() {
                   Archivo seleccionado - Listo para importar
                 </p>
                 <button 
-                  onClick={resetUpload}
+                  onClick={handleResetUpload}
                   className="text-sm text-[var(--primary-color)] hover:underline"
                 >
                   Cambiar archivo
@@ -288,7 +204,7 @@ export default function CargaMasivaPage() {
             Para asegurar una importación exitosa, descargue y utilice nuestra plantilla oficial.
           </p>
           <button 
-            onClick={downloadTemplate}
+            onClick={descargarPlantilla}
             className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium border border-[var(--primary-color)] text-[var(--primary-color)] hover:bg-[var(--primary-color)] hover:text-white transition-colors"
           >
             <span className="material-symbols-outlined text-base">file_download</span>
@@ -384,66 +300,86 @@ export default function CargaMasivaPage() {
         </div>
       </div>
 
-      {/* Progress Section */}
-      {isUploading && (
-        <div className="bg-[var(--surface-color)] border border-[var(--border-color)] rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-            <span className="material-symbols-outlined text-[var(--primary-color)]">progress_activity</span>
-            Procesando Archivo
-          </h3>
-          
-          <div className="space-y-4">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-[var(--text-secondary)]">Validando estructura del archivo...</span>
-              <span className={uploadProgress.validatingStructure ? "text-[var(--primary-color)]" : "text-[var(--accent-color)]"}>
-                {uploadProgress.validatingStructure ? "En progreso" : "✓ Completo"}
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-[var(--text-secondary)]">Verificando datos obligatorios...</span>
-              <span className={
-                uploadProgress.validatingData ? "text-[var(--primary-color)]" : 
-                uploadProgress.validatingStructure ? "text-[var(--text-secondary)]" : "text-[var(--accent-color)]"
-              }>
-                {uploadProgress.validatingData ? "En progreso" : 
-                 uploadProgress.validatingStructure ? "Pendiente" : "✓ Completo"}
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-[var(--text-secondary)]">Importando productos...</span>
-              <span className={
-                uploadProgress.importing ? "text-[var(--primary-color)]" : 
-                (uploadProgress.validatingData || uploadProgress.validatingStructure) ? "text-[var(--text-secondary)]" : "text-[var(--accent-color)]"
-              }>
-                {uploadProgress.importing ? "En progreso" : 
-                 (uploadProgress.validatingData || uploadProgress.validatingStructure) ? "Pendiente" : "✓ Completo"}
-              </span>
-            </div>
+        {/* Progress Section */}
+        {isUploading && (
+          <div className="bg-[var(--surface-color)] border border-[var(--border-color)] rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+              <span className="material-symbols-outlined text-[var(--primary-color)]">progress_activity</span>
+              Procesando Archivo
+            </h3>
             
-            <div className="w-full bg-[var(--border-color)] rounded-full h-2">
-              <div 
-                className="bg-[var(--primary-color)] h-2 rounded-full transition-all duration-500" 
-                style={{ 
-                  width: `${
-                    uploadProgress.completed ? 100 :
-                    uploadProgress.importing ? 75 :
-                    uploadProgress.validatingData ? 50 :
-                    uploadProgress.validatingStructure ? 25 : 0
-                  }%` 
-                }}
-              ></div>
-            </div>
-            <p className="text-sm text-[var(--text-secondary)] text-center">
-              {uploadProgress.importing && "Procesando 245 de 550 productos..."}
-              {uploadProgress.validatingData && "Validando datos de productos..."}
-              {uploadProgress.validatingStructure && "Verificando formato del archivo..."}
-              {uploadProgress.completed && "Importación completada"}
-            </p>
-          </div>
-        </div>
-      )}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-[var(--text-secondary)]">Subiendo archivo...</span>
+                <span className={uploadProgress.validatingStructure ? "text-[var(--primary-color)]" : "text-[var(--accent-color)]"}>
+                  {uploadProgress.validatingStructure ? "En progreso" : "✓ Completo"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-[var(--text-secondary)]">Validando estructura y datos...</span>
+                <span className={
+                  uploadProgress.validatingData ? "text-[var(--primary-color)]" : 
+                  uploadProgress.validatingStructure ? "text-[var(--text-secondary)]" : "text-[var(--accent-color)]"
+                }>
+                  {uploadProgress.validatingData ? "En progreso" : 
+                   uploadProgress.validatingStructure ? "Pendiente" : "✓ Completo"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-[var(--text-secondary)]">Procesando productos...</span>
+                <span className={
+                  uploadProgress.importing ? "text-[var(--primary-color)]" : 
+                  (uploadProgress.validatingData || uploadProgress.validatingStructure) ? "text-[var(--text-secondary)]" : "text-[var(--accent-color)]"
+                }>
+                  {uploadProgress.importing ? "En progreso" : 
+                   (uploadProgress.validatingData || uploadProgress.validatingStructure) ? "Pendiente" : "✓ Completo"}
+                </span>
+              </div>
+              
+              <div className="w-full bg-[var(--border-color)] rounded-full h-2">
+                <div 
+                  className="bg-[var(--primary-color)] h-2 rounded-full transition-all duration-500" 
+                  style={{ 
+                    width: `${
+                      uploadProgress.completed ? 100 :
+                      uploadProgress.importing ? 75 :
+                      uploadProgress.validatingData ? 50 :
+                      uploadProgress.validatingStructure ? 25 : 0
+                    }%` 
+                  }}
+                ></div>
+              </div>
 
-      {/* Results Section */}
+              {/* Estado actual y progreso detallado */}
+              {uploadProgress.currentStatus && (
+                <p className="text-sm text-[var(--text-secondary)] text-center font-medium">
+                  {uploadProgress.currentStatus}
+                </p>
+              )}
+              
+              {uploadProgress.progress && (
+                <div className="grid grid-cols-4 gap-2 text-xs text-center">
+                  <div className="bg-[var(--background-color)] p-2 rounded">
+                    <div className="font-semibold text-[var(--text-primary)]">{uploadProgress.progress.total}</div>
+                    <div className="text-[var(--text-secondary)]">Total</div>
+                  </div>
+                  <div className="bg-[var(--background-color)] p-2 rounded">
+                    <div className="font-semibold text-[var(--primary-color)]">{uploadProgress.progress.processed}</div>
+                    <div className="text-[var(--text-secondary)]">Procesados</div>
+                  </div>
+                  <div className="bg-[var(--background-color)] p-2 rounded">
+                    <div className="font-semibold text-[var(--accent-color)]">{uploadProgress.progress.successful}</div>
+                    <div className="text-[var(--text-secondary)]">Exitosos</div>
+                  </div>
+                  <div className="bg-[var(--background-color)] p-2 rounded">
+                    <div className="font-semibold text-[var(--accent-red)]">{uploadProgress.progress.failed}</div>
+                    <div className="text-[var(--text-secondary)]">Fallidos</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}      {/* Results Section */}
       {importResults && (
         <div className="bg-[var(--surface-color)] border border-[var(--border-color)] rounded-xl p-6">
           <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
@@ -471,13 +407,90 @@ export default function CargaMasivaPage() {
               <div className="text-sm text-[var(--text-secondary)]">Total procesados</div>
             </div>
           </div>
+
+          {/* Resumen detallado */}
+          {importResults.resumen && (
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+              <div className="text-center p-3 bg-[var(--background-color)] rounded-lg">
+                <div className="text-lg font-semibold text-[var(--accent-color)]">
+                  {importResults.resumen.productos_creados}
+                </div>
+                <div className="text-xs text-[var(--text-secondary)]">Creados</div>
+              </div>
+              <div className="text-center p-3 bg-[var(--background-color)] rounded-lg">
+                <div className="text-lg font-semibold text-[var(--primary-color)]">
+                  {importResults.resumen.productos_actualizados}
+                </div>
+                <div className="text-xs text-[var(--text-secondary)]">Actualizados</div>
+              </div>
+              <div className="text-center p-3 bg-[var(--background-color)] rounded-lg">
+                <div className="text-lg font-semibold text-[var(--text-secondary)]">
+                  {importResults.resumen.duplicados}
+                </div>
+                <div className="text-xs text-[var(--text-secondary)]">Duplicados</div>
+              </div>
+              <div className="text-center p-3 bg-[var(--background-color)] rounded-lg">
+                <div className="text-lg font-semibold text-[var(--accent-red)]">
+                  {importResults.resumen.rechazados}
+                </div>
+                <div className="text-xs text-[var(--text-secondary)]">Rechazados</div>
+              </div>
+              <div className="text-center p-3 bg-[var(--background-color)] rounded-lg">
+                <div className="text-lg font-semibold text-[var(--accent-color)]">
+                  {importResults.resumen.exitosos}
+                </div>
+                <div className="text-xs text-[var(--text-secondary)]">Exitosos</div>
+              </div>
+            </div>
+          )}
+
+          {/* Listas de productos */}
+          {(importResults.productos_creados?.length > 0 || importResults.productos_actualizados?.length > 0) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              {importResults.productos_creados?.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-[var(--text-primary)] mb-2">
+                    Productos Creados ({importResults.productos_creados.length})
+                  </h4>
+                  <div className="bg-[var(--background-color)] rounded-lg p-3 max-h-32 overflow-y-auto">
+                    <div className="space-y-1 text-sm">
+                      {importResults.productos_creados.map((producto, index) => (
+                        <div key={index} className="text-[var(--accent-color)] font-mono">
+                          {producto}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {importResults.productos_actualizados?.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-[var(--text-primary)] mb-2">
+                    Productos Actualizados ({importResults.productos_actualizados.length})
+                  </h4>
+                  <div className="bg-[var(--background-color)] rounded-lg p-3 max-h-32 overflow-y-auto">
+                    <div className="space-y-1 text-sm">
+                      {importResults.productos_actualizados.map((producto, index) => (
+                        <div key={index} className="text-[var(--primary-color)] font-mono">
+                          {producto}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           
           {importResults.errorDetails.length > 0 && (
             <div className="space-y-4">
-              <h4 className="font-semibold text-[var(--text-primary)]">Errores encontrados:</h4>
+              <h4 className="font-semibold text-[var(--text-primary)]">
+                Errores encontrados ({importResults.errorDetails.length}):
+              </h4>
               <div className="bg-[var(--background-color)] rounded-lg p-4 max-h-40 overflow-y-auto">
                 <div className="space-y-2 text-sm">
-                  {importResults.errorDetails.map((error, index) => (
+                  {importResults.errorDetails.map((error: string, index: number) => (
                     <div key={index} className="text-[var(--accent-red)]">
                       {error}
                     </div>
