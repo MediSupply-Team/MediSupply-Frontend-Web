@@ -1,0 +1,4 @@
+"id","nombre","codigo","categoria","presentacion","precio_unitario","certificado_sanitario","condiciones_almacenamiento","tiempo_entrega_dias","stock_minimo","stock_critico","requiere_lote","requiere_vencimiento"
+"PROD_POSTMAN_009","Amoxicilina 500mg","AMX500-POSTMAN2","ANTIBIOTICS","Cápsula","1550","CERT-INVIMA-2024-001","Temperatura ambiente 15-30°C","3","150","30","true","true"
+"PROD_POSTMAN_010","Ibuprofeno 400mg","IBU400-POSTMAN2","ANALGESICS","Tableta","850","CERT-INVIMA-2024-002","Temperatura ambiente","3","170","50","true","true"
+"PROD_POSTMAN_012","Losartán 50mg","LOS50-POSTMAN2","CARDIOVASCULARES","Tableta","1200","CERT-INVIMA-2024-003","Temperatura ambiente 15-25°C","7","100","40","true","true"

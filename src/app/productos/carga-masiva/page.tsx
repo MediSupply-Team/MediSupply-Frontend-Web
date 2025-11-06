@@ -3,38 +3,25 @@
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useNotifications } from '@/store/appStore';
-
-interface UploadProgress {
-  validatingStructure: boolean;
-  validatingData: boolean;
-  importing: boolean;
-  completed: boolean;
-}
-
-interface ImportResults {
-  imported: number;
-  errors: number;
-  total: number;
-  errorDetails: string[];
-}
+import { useCargaMasiva } from '@/hooks/useCargaMasiva';
 
 export default function CargaMasivaPage() {
   // === ESTADO LOCAL ===
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<UploadProgress>({
-    validatingStructure: false,
-    validatingData: false,
-    importing: false,
-    completed: false,
-  });
-  const [importResults, setImportResults] = useState<ImportResults | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
   // === HOOKS ===
   const { addNotification } = useNotifications();
+  const {
+    isUploading,
+    uploadProgress,
+    importResults,
+    iniciarCargaMasiva,
+    resetUpload,
+    descargarPlantilla,
+  } = useCargaMasiva();
 
   // === HANDLERS ===
   const handleFileSelect = (file: File) => {
@@ -99,61 +86,6 @@ export default function CargaMasivaPage() {
     }
   };
 
-  const simulateImport = async () => {
-    setIsUploading(true);
-    setUploadProgress({
-      validatingStructure: true,
-      validatingData: false,
-      importing: false,
-      completed: false,
-    });
-
-    // Simular validación de estructura
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setUploadProgress(prev => ({
-      ...prev,
-      validatingStructure: false,
-      validatingData: true,
-    }));
-
-    // Simular validación de datos
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setUploadProgress(prev => ({
-      ...prev,
-      validatingData: false,
-      importing: true,
-    }));
-
-    // Simular importación
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    setUploadProgress(prev => ({
-      ...prev,
-      importing: false,
-      completed: true,
-    }));
-
-    // Mostrar resultados simulados
-    setImportResults({
-      imported: 485,
-      errors: 65,
-      total: 550,
-      errorDetails: [
-        'Fila 12: SKU duplicado "JER-10ML-001"',
-        'Fila 25: Categoría inválida "Equipos Medicos" (debe ser "Equipos Médicos")',
-        'Fila 38: Campo obligatorio "Nombre del Producto" vacío',
-        'Fila 42: Precio inválido "abc" (debe ser numérico)',
-        'Fila 67: Fecha de vencimiento inválida "32/13/2024"',
-      ]
-    });
-
-    setIsUploading(false);
-    addNotification({
-      tipo: 'success',
-      titulo: 'Importación completada',
-      mensaje: '485 productos importados exitosamente',
-    });
-  };
-
   const handleStartImport = () => {
     if (!selectedFile) {
       addNotification({
@@ -164,31 +96,15 @@ export default function CargaMasivaPage() {
       return;
     }
 
-    simulateImport();
+    iniciarCargaMasiva(selectedFile);
   };
 
-  const resetUpload = () => {
+  const handleResetUpload = () => {
     setSelectedFile(null);
-    setIsUploading(false);
-    setUploadProgress({
-      validatingStructure: false,
-      validatingData: false,
-      importing: false,
-      completed: false,
-    });
-    setImportResults(null);
+    resetUpload();
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  };
-
-  const downloadTemplate = () => {
-    addNotification({
-      tipo: 'info',
-      titulo: 'Descarga iniciada',
-      mensaje: 'La plantilla Excel se descargará automáticamente',
-    });
-    // Aquí implementarías la descarga real del template
   };
 
   return (
@@ -237,7 +153,7 @@ export default function CargaMasivaPage() {
                   Archivo seleccionado - Listo para importar
                 </p>
                 <button 
-                  onClick={resetUpload}
+                  onClick={handleResetUpload}
                   className="text-sm text-[var(--primary-color)] hover:underline"
                 >
                   Cambiar archivo
@@ -288,7 +204,7 @@ export default function CargaMasivaPage() {
             Para asegurar una importación exitosa, descargue y utilice nuestra plantilla oficial.
           </p>
           <button 
-            onClick={downloadTemplate}
+            onClick={descargarPlantilla}
             className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium border border-[var(--primary-color)] text-[var(--primary-color)] hover:bg-[var(--primary-color)] hover:text-white transition-colors"
           >
             <span className="material-symbols-outlined text-base">file_download</span>
