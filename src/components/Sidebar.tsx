@@ -2,26 +2,28 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useI18n } from '@/hooks/useI18n'
 
 interface NavItem {
   href: string
   icon: string
-  label: string
+  labelKey: string
 }
 
 const navItems: NavItem[] = [
-  { href: '/', icon: 'dashboard', label: 'Dashboard' },
-  { href: '/inventario', icon: 'inventory_2', label: 'Inventario' },
-  { href: '/proveedores', icon: 'local_shipping', label: 'Proveedores' },
-  { href: '/productos', icon: 'medication', label: 'Productos' },
-  { href: '/vendedores', icon: 'group', label: 'Vendedores' },
-  { href: '/reportes', icon: 'bar_chart', label: 'Reportes' },
-  { href: '/rutas', icon: 'route', label: 'Rutas' },
-  { href: '/mi-perfil', icon: 'person', label: 'Mi Perfil' },
+  { href: '/', icon: 'dashboard', labelKey: 'nav.dashboard' },
+  { href: '/inventario', icon: 'inventory_2', labelKey: 'nav.inventory' },
+  { href: '/proveedores', icon: 'local_shipping', labelKey: 'nav.suppliers' },
+  { href: '/productos', icon: 'medication', labelKey: 'nav.products' },
+  { href: '/vendedores', icon: 'group', labelKey: 'nav.sellers' },
+  { href: '/reportes', icon: 'bar_chart', labelKey: 'nav.reports' },
+  { href: '/rutas', icon: 'route', labelKey: 'nav.routes' },
+  { href: '/mi-perfil', icon: 'person', labelKey: 'nav.profile' },
 ]
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const { t } = useI18n()
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-[var(--sidebar-bg)] border-r border-[var(--sidebar-border)]">
@@ -31,7 +33,7 @@ export default function Sidebar() {
           <span className="material-symbols-outlined text-[var(--primary-color)] text-3xl">
             medical_services
           </span>
-          <h1 className="text-[var(--text-primary)] text-lg font-bold">MediSupply</h1>
+          <h1 className="text-[var(--text-primary)] text-lg font-bold">{t('common.appName')}</h1>
         </div>
 
         {/* Navigation */}
@@ -44,7 +46,7 @@ export default function Sidebar() {
               data-active={pathname === item.href}
             >
               <span className="material-symbols-outlined">{item.icon}</span>
-              <p>{item.label}</p>
+              <p>{t(item.labelKey)}</p>
             </Link>
           ))}
         </nav>
@@ -56,7 +58,7 @@ export default function Sidebar() {
         <div className="border-t border-[var(--border-color)] pt-4">
           <button className="ms-nav w-full">
             <span className="material-symbols-outlined">logout</span>
-            <p>Salir</p>
+            <p>{t('nav.logout')}</p>
           </button>
         </div>
       </div>
