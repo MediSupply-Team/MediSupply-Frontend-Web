@@ -28,16 +28,20 @@ class BackendService {
     };
 
     try {
+      console.log('🔍 Fetching:', url);
       const response = await fetch(url, defaultOptions);
       
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ HTTP Error ${response.status}:`, errorText);
         throw new Error(`HTTP Error: ${response.status} - ${response.statusText}`);
       }
 
       const data = await response.json();
+      console.log('✅ Response data:', data);
       return data;
     } catch (error) {
-      console.error(`Error en petición a ${url}:`, error);
+      console.error(`❌ Error en petición a ${url}:`, error);
       throw error;
     }
   }
@@ -59,9 +63,13 @@ class BackendService {
       params.append('product_id', filters.product_id);
     }
 
-    return this.request<SalesPerformanceResponse>(
-      `/venta/api/reports/sales-performance?${params.toString()}`
-    );
+    const endpoint = `/venta/api/reports/sales-performance?${params.toString()}`;
+    console.log('🌐 Llamando al backend:', `${this.baseUrl}${endpoint}`);
+    
+    const response = await this.request<SalesPerformanceResponse>(endpoint);
+    console.log('✅ Respuesta del backend:', response);
+    
+    return response;
   }
 
   /**
