@@ -1,0 +1,172 @@
+{
+  "common": {
+    "appName": "MediSupply",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "import": "Import",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "all": "All",
+    "none": "None",
+    "actions": "Actions",
+    "status": "Status",
+    "date": "Date",
+    "time": "Time",
+    "confirm": "Confirm",
+    "total": "Total"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "suppliers": "Suppliers",
+    "products": "Products",
+    "sellers": "Sellers",
+    "reports": "Reports",
+    "routes": "Routes",
+    "inventory": "Inventory",
+    "profile": "My Profile",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "products": {
+    "title": "Products",
+    "add": "Add Product",
+    "bulkUpload": "Bulk Upload",
+    "name": "Name",
+    "sku": "SKU",
+    "location": "Location",
+    "stock": "Stock",
+    "expiration": "Expiration",
+    "category": "Category",
+    "price": "Price",
+    "active": "Active",
+    "inactive": "Inactive",
+    "lowStock": "Low Stock",
+    "outOfStock": "Out of Stock",
+    "actions": {
+      "registerInflow": "Register Inflow",
+      "registerOutflow": "Register Outflow",
+      "purchase": "Purchase",
+      "sale": "Sale"
+    }
+  },
+  "inventory": {
+    "movement": "Movement",
+    "inflow": "Inflow",
+    "outflow": "Outflow",
+    "batch": "Batch",
+    "warehouse": "Warehouse",
+    "quantity": "Quantity",
+    "expirationDate": "Expiration Date",
+    "reference": "Reference",
+    "observations": "Observations",
+    "registerSuccess": "Movement registered successfully",
+    "registerError": "Error registering movement"
+  },
+  "profile": {
+    "title": "Settings",
+    "description": "Manage your language, region and application preferences",
+    "tabs": {
+      "personal": "Personal Information",
+      "settings": "Settings",
+      "security": "Security"
+    },
+    "personal": {
+      "title": "Personal Information",
+      "accountActive": "Account Active",
+      "memberSince": "Member since",
+      "lastAccess": "Last access",
+      "role": "Role",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "phone": "Phone",
+      "position": "Position",
+      "department": "Department",
+      "biography": "Biography",
+      "biographyPlaceholder": "Tell us a little about yourself..."
+    },
+    "settings": {
+      "language": {
+        "title": "Language and Region",
+        "interface": "Interface language",
+        "country": "Country/Region",
+        "timezone": "Time Zone",
+        "currency": "Currency",
+        "description": "Change the language of the entire application"
+      },
+      "format": {
+        "title": "Data Format",
+        "date": "Date Format",
+        "time": "Time Format",
+        "decimal": "Decimal Separator",
+        "number": "Number Format"
+      },
+      "preferences": {
+        "title": "Application Preferences",
+        "darkMode": "Dark Mode",
+        "darkModeDesc": "Enable dark theme for better visual experience",
+        "emailNotifications": "Email Notifications",
+        "emailNotificationsDesc": "Receive important updates via email",
+        "inventoryAlerts": "Inventory Alerts",
+        "inventoryAlertsDesc": "Notifications when stock is low",
+        "autoSave": "Auto-save",
+        "autoSaveDesc": "Automatically saves changes whilst you work",
+        "compactView": "Compact View",
+        "compactViewDesc": "Show more information on screen"
+      },
+      "restore": "Restore Default Values",
+      "saveSettings": "Save Settings"
+    },
+    "security": {
+      "changePassword": {
+        "title": "Change Password",
+        "current": "Current Password",
+        "new": "New Password",
+        "confirm": "Confirm New Password",
+        "update": "Update Password"
+      },
+      "twoFactor": {
+        "title": "Two-Factor Authentication",
+        "active": "2FA Active",
+        "description": "Additional protection for your account",
+        "disable": "Disable 2FA"
+      },
+      "sessions": {
+        "title": "Active Sessions",
+        "current": "Current",
+        "close": "Close",
+        "closeAll": "Close All Other Sessions"
+      }
+    }
+  },
+  "countries": {
+    "CO": "Colombia",
+    "MX": "Mexico",
+    "AR": "Argentina",
+    "PE": "Peru",
+    "CL": "Chile",
+    "US": "United States",
+    "GB": "United Kingdom"
+  },
+  "departments": {
+    "administration": "Administration",
+    "sales": "Sales",
+    "inventory": "Inventory",
+    "logistics": "Logistics"
+  },
+  "regionalTerms": {
+    "cellphone": "Mobile",
+    "truck": "Lorry",
+    "computer": "Computer"
+  }
+}

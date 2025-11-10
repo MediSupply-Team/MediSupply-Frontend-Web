@@ -1,1061 +1,516 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { 
-  useEstadisticasVentas, 
-  useDatosGraficos, 
-  useVentasVendedores
-} from '@/hooks/useReportes';
-import { 
-  useSalesPerformance, 
-  useSalesSummary, 
-  useSalesCharts, 
-  useSalesTable 
-} from '@/hooks/useBackend';
-import { useNotifications } from '@/store/appStore';
-import { 
-  exportToCSV, 
-  exportToPDF, 
-  calculateSummary,
-  type FilterData 
-} from '@/utils/export';
-import { useExportReport } from '@/hooks/useExportReport';
-import type { FiltrosReportes, SalesPerformanceFilters } from '@/types';
+  TrendingUp, 
+  Package, 
+  BarChart3,
+  FileDown,
+  Calendar,
+  DollarSign,
+  ShoppingCart,
+  Users,
+  RefreshCw
+} from 'lucide-react';
+import { useSalesPerformance } from '@/hooks/useBackend';
+import type { SalesPerformanceFilters } from '@/types';
+import { useI18n } from '@/hooks/useI18n';
 
-const ReportesPage = () => {
-  // === ESTADO LOCAL ===
-  const [filtros, setFiltros] = useState<FiltrosReportes>({});
-  const [useBackendData, setUseBackendData] = useState(true); // Toggle para usar backend vs mock
-  const [backendFilters, setBackendFilters] = useState<SalesPerformanceFilters>({
-    from: '2025-09-01',
-    to: '2025-09-30'
+export default function ReportesPage() {
+  const { formatCurrency, formatDate, formatNumber } = useI18n();
+  
+  // Estado para filtros - por defecto último mes
+  const [periodo, setPeriodo] = useState({
+    inicio: '2025-10-01',
+    fin: '2025-11-30',
   });
-  
-  const { addNotification } = useNotifications();
-  
-  // === QUERIES MOCK DATA ===
-  const { data: estadisticasMock, isLoading: loadingEstadisticasMock } = useEstadisticasVentas();
-  const { data: datosGraficosMock, isLoading: loadingGraficosMock } = useDatosGraficos();
-  const { data: ventasDataMock, isLoading: loadingVentasMock } = useVentasVendedores(filtros);
-  
-  // === QUERIES BACKEND DATA ===
-  const { isLoading: loadingSalesData, error: salesError } = useSalesPerformance(backendFilters);
-  const { data: salesSummary, isLoading: loadingSummary } = useSalesSummary(backendFilters);
-  const { data: salesCharts, isLoading: loadingCharts } = useSalesCharts(backendFilters);
-  const { data: salesTable, isLoading: loadingTable } = useSalesTable(backendFilters);
-  
-  // === MUTATIONS ===
-  const { exportReport, isLoading: isExporting } = useExportReport();
 
-  // === DATOS SELECCIONADOS ===
-  const isLoading = useBackendData 
-    ? loadingSalesData || loadingSummary || loadingCharts || loadingTable
-    : loadingEstadisticasMock || loadingGraficosMock || loadingVentasMock;
+  // Filtros para el backend
+  const backendFilters: SalesPerformanceFilters = useMemo(() => ({
+    from: periodo.inicio,
+    to: periodo.fin,
+  }), [periodo.inicio, periodo.fin]);
 
-  // === FUNCIONES AUXILIARES PARA MANEJAR DIFERENTES TIPOS DE DATOS ===
-  const getEstadisticas = () => {
-    if (useBackendData) {
-      if (salesSummary && !salesError) {
-        // Datos reales del backend
-        return {
-          ventasTotales: salesSummary.total_sales,
-          pedidosPendientes: salesSummary.pending_orders,
-          productosEnStock: salesSummary.products_in_stock,
-          rendimientoVentas: {
-            porcentaje: salesSummary.sales_change_pct_vs_prev_period,
-            comparacionAnterior: salesSummary.sales_change_pct_vs_prev_period,
-          }
-        };
-      } else {
-        // Datos mock en formato del backend cuando hay error
-        return {
-          ventasTotales: 89306.1,
-          pedidosPendientes: 4,
-          productosEnStock: 2500,
-          rendimientoVentas: {
-            porcentaje: 0.0,
-            comparacionAnterior: 0.0,
-          }
-        };
-      }
-    }
-    return estadisticasMock;
-  };
+  // Hook principal del backend
+  const { data: salesData, isLoading, refetch } = useSalesPerformance(backendFilters);
 
-  const getDatosGraficos = () => {
-    if (useBackendData) {
-      if (salesCharts && !salesError) {
-        // Datos reales del backend
-        const puntos = salesCharts.trend.map((item, index) => ({
-          x: index * 50 + 25, // Espaciado horizontal
-          y: 150 - (item.total / 1000), // Convertir a coordenadas Y (invertidas)
-        }));
-        
-        const porcentajes = salesCharts.top_products.map((product, index) => ({
-          producto: product.product_name,
-          porcentaje: Math.round((product.amount / salesCharts.top_products.reduce((sum, p) => sum + p.amount, 0)) * 100),
-          color: ['#0ea5a8', '#22c55e', '#ef4444', '#f59e0b', '#8b5cf6'][index % 5]
-        }));
-        
-        return {
-          puntos,
-          porcentajes,
-          productos: salesCharts.top_products,
-        };
-      } else {
-        // Datos mock en formato del backend cuando hay error
-        const mockTrend = [
-          { date: '2025-09-01', total: 36999.5 },
-          { date: '2025-09-02', total: 23714.0 },
-          { date: '2025-09-03', total: 28592.6 }
-        ];
-        
-        const mockProducts = [
-          { product_name: 'Jeringas Desechables', amount: 26000.0 },
-          { product_name: 'Mascarillas N95', amount: 21000.0 },
-          { product_name: 'Guantes de Látex', amount: 18750.0 },
-          { product_name: 'Alcohol en Gel', amount: 13556.1 },
-          { product_name: 'Batas Quirúrgicas', amount: 10000.0 }
-        ];
-
-        const puntos = mockTrend.map((item, index) => ({
-          x: index * 50 + 25,
-          y: 150 - (item.total / 1000),
-        }));
-        
-        const porcentajes = mockProducts.map((product, index) => ({
-          producto: product.product_name,
-          porcentaje: Math.round((product.amount / mockProducts.reduce((sum, p) => sum + p.amount, 0)) * 100),
-          color: ['#0ea5a8', '#22c55e', '#ef4444', '#f59e0b', '#8b5cf6'][index % 5]
-        }));
-        
-        return {
-          puntos,
-          porcentajes,
-          productos: mockProducts,
-        };
-      }
-    }
-    return datosGraficosMock;
-  };
-
-  const getVentasData = () => {
-    let baseData;
-    
-    if (useBackendData) {
-      if (salesTable && !salesError) {
-        // Datos reales del backend
-        baseData = {
-          data: salesTable.map((row, index) => ({
-            id: `backend_${index}`,
-            vendedorId: `vendor_${index}`,
-            vendedor: row.vendor_name,
-            producto: row.product_name,
-            cantidad: row.quantity,
-            ingresos: row.revenue,
-            estado: row.status as 'completado' | 'pendiente',
-            fecha: new Date().toISOString().split('T')[0],
-          }))
-        };
-      } else {
-        // Datos mock en formato del backend cuando hay error
-        const mockTableData = [
-          {
-            vendor_name: 'Ana López',
-            product_name: 'Batas Quirúrgicas',
-            quantity: 50,
-            revenue: 10000.0,
-            status: 'pendiente'
-          },
-          {
-            vendor_name: 'Carlos Martínez',
-            product_name: 'Alcohol en Gel',
-            quantity: 73,
-            revenue: 13556.1,
-            status: 'completado'
-          },
-          {
-            vendor_name: 'Juan Pérez',
-            product_name: 'Jeringas Desechables',
-            quantity: 130,
-            revenue: 26000.0,
-            status: 'completado'
-          },
-          {
-            vendor_name: 'María García',
-            product_name: 'Guantes de Látex',
-            quantity: 75,
-            revenue: 18750.0,
-            status: 'pendiente'
-          },
-          {
-            vendor_name: 'Pedro Rodríguez',
-            product_name: 'Mascarillas N95',
-            quantity: 105,
-            revenue: 21000.0,
-            status: 'completado'
-          }
-        ];
-
-        baseData = {
-          data: mockTableData.map((row, index) => ({
-            id: `mock_backend_${index}`,
-            vendedorId: `vendor_${index}`,
-            vendedor: row.vendor_name,
-            producto: row.product_name,
-            cantidad: row.quantity,
-            ingresos: row.revenue,
-            estado: row.status as 'completado' | 'pendiente',
-            fecha: new Date().toISOString().split('T')[0],
-          }))
-        };
-      }
-    } else {
-      baseData = ventasDataMock;
-    }
-
-    // Aplicar filtros en el frontend
-    if (baseData && baseData.data) {
-      let filteredData = [...baseData.data];
-
-      // Filtro por producto
-      if (filtros.producto) {
-        filteredData = filteredData.filter(item => 
-          item.producto.toLowerCase().includes(filtros.producto!.toLowerCase()) ||
-          item.vendedor.toLowerCase().includes(filtros.producto!.toLowerCase())
-        );
-      }
-
-      // Filtro por estado
-      if (filtros.estado) {
-        filteredData = filteredData.filter(item => item.estado === filtros.estado);
-      }
-
-      // Filtro por fecha de inicio
-      if (filtros.fechaInicio) {
-        filteredData = filteredData.filter(item => item.fecha >= filtros.fechaInicio!);
-      }
-
-      // Filtro por fecha de fin
-      if (filtros.fechaFin) {
-        filteredData = filteredData.filter(item => item.fecha <= filtros.fechaFin!);
-      }
-
+  // Función para obtener estadísticas del backend
+  const stats = useMemo(() => {
+    if (!salesData?.estadisticas) {
       return {
-        ...baseData,
-        data: filteredData
+        totalSales: 0,
+        totalOrders: 0,
+        averageOrderValue: 0,
+        topProduct: '-',
+        performance: 0,
+        isPositive: false,
       };
     }
 
-    return baseData || { data: [] };
-  };
+    const stats = salesData.estadisticas;
+    const totalSales = stats.ventasTotales || 0;
+    const pendingOrders = stats.ordenesPendientes || 0;
+    
+    // Calcular producto top desde los gráficos
+    let topProductName = '-';
+    if (salesData.graficos?.productosTop && salesData.graficos.productosTop.length > 0) {
+      topProductName = salesData.graficos.productosTop[0].nombre;
+    }
+    
+    // Calcular valor promedio desde la tabla
+    let averageValue = 0;
+    if (salesData.tabla && salesData.tabla.length > 0) {
+      const totalRevenue = salesData.tabla.reduce((sum: number, row: { ingresos: number }) => sum + row.ingresos, 0);
+      const totalQuantity = salesData.tabla.reduce((sum: number, row: { cantidad: number }) => sum + row.cantidad, 0);
+      averageValue = totalQuantity > 0 ? totalRevenue / totalQuantity : 0;
+    }
+    
+    return {
+      totalSales: totalSales,
+      totalOrders: pendingOrders,
+      averageOrderValue: averageValue,
+      topProduct: topProductName,
+      performance: stats.cambioVentas || 0,
+      isPositive: (stats.cambioVentas || 0) >= 0,
+    };
+  }, [salesData]);
 
-  // Variables computadas
-  const estadisticasActuales = getEstadisticas();
-  const datosGraficosActuales = getDatosGraficos();
-  const ventasDataActuales = getVentasData();
+  // Datos de gráficos
+  const chartData = useMemo(() => {
+    if (!salesData?.graficos) {
+      return {
+        trend: [],
+        topProducts: [],
+      };
+    }
+
+    return {
+      trend: salesData.graficos.tendencia || [],
+      topProducts: salesData.graficos.productosTop || [],
+    };
+  }, [salesData]);
+
+  // Datos de tabla
+  const tableData = useMemo(() => {
+    if (!salesData?.tabla) {
+      return [];
+    }
+
+    return salesData.tabla;
+  }, [salesData]);
 
   const handleExportar = async (formato: 'excel' | 'pdf') => {
     try {
-      if (useBackendData) {
-        // Usar el endpoint del backend para exportación
-        const result = await exportReport(backendFilters, formato === 'excel' ? 'csv' : 'pdf');
-        
-        if (result.success) {
-          addNotification({
-            tipo: 'success',
-            titulo: 'Exportación exitosa',
-            mensaje: result.message || `Reporte exportado exitosamente en formato ${formato.toUpperCase()}`,
-          });
-        } else {
-          addNotification({
-            tipo: 'error',
-            titulo: 'Error de exportación',
-            mensaje: result.error || 'Error al exportar el reporte desde el servidor',
-          });
-        }
-      } else {
-        // Fallback para datos mock usando generación local
-        const ventasData = getVentasData();
-        
-        if (!ventasData?.data || ventasData.data.length === 0) {
-          addNotification({
-            tipo: 'warning',
-            titulo: 'Sin datos para exportar',
-            mensaje: 'No hay datos disponibles para exportar',
-          });
-          return;
-        }
-
-        // Adaptar datos de VentaVendedor a formato de exportación
-        const exportData = ventasData.data.map(venta => ({
-          id: venta.id,
-          producto: venta.producto,
-          proveedor: venta.vendedor, // Usando vendedor como proveedor
-          fecha: venta.fecha,
-          cantidad: venta.cantidad,
-          precioUnitario: venta.ingresos / venta.cantidad, // Calculando precio unitario
-          total: venta.ingresos,
-          estado: venta.estado
-        }));
-        
-        // Calcular resumen
-        const summary = calculateSummary(exportData);
-        
-        // Crear objeto de filtros para incluir en el reporte
-        const filterData: FilterData = {
-          fechaInicio: filtros.fechaInicio,
-          fechaFin: filtros.fechaFin,
-          estado: filtros.estado,
-          busqueda: filtros.producto // Usando producto como búsqueda
-        };
-
-        if (formato === 'excel') {
-          exportToCSV(exportData, filterData);
-        } else {
-          exportToPDF(exportData, summary, filterData);
-        }
-
-        addNotification({
-          tipo: 'success',
-          titulo: 'Exportación exitosa',
-          mensaje: `Reporte exportado exitosamente en formato ${formato.toUpperCase()}`,
-        });
+      if (!salesData?.metadata) {
+        alert('No hay datos para exportar');
+        return;
       }
+      
+      // Mapear formato: excel -> csv (ya que el backend usa csv para Excel)
+      const formatoBackend = formato === 'excel' ? 'csv' : 'pdf';
+      
+      // Construir URL del endpoint
+      const exportUrl = `https://medisupply-backend.duckdns.org/venta/api/reports/sales-performance/export?from=${periodo.inicio}&to=${periodo.fin}&format=${formatoBackend}`;
+      
+      // Hacer la petición al backend
+      const response = await fetch(exportUrl);
+      
+      if (!response.ok) {
+        throw new Error('Error al generar el reporte');
+      }
+      
+      const data = await response.json();
+      
+      // Verificar que tengamos la URL de descarga
+      if (!data.url) {
+        throw new Error('No se recibió la URL de descarga');
+      }
+      
+      // Abrir la URL en una nueva pestaña para descargar el archivo
+      window.open(data.url, '_blank');
+      
     } catch (error) {
       console.error('Error al exportar:', error);
-      addNotification({
-        tipo: 'error',
-        titulo: 'Error de exportación',
-        mensaje: 'Error al exportar el reporte. Intente nuevamente.',
-      });
+      alert('Error al generar el reporte. Por favor, intenta nuevamente.');
     }
   };
 
-  const handleFiltroChange = (campo: keyof FiltrosReportes, valor: string) => {
-    setFiltros(prev => ({
-      ...prev,
-      [campo]: valor || undefined,
-    }));
-  };
-
-  const handleBackendFiltersChange = (filters: Partial<SalesPerformanceFilters>) => {
-    setBackendFilters(prev => ({
-      ...prev,
-      ...filters,
-    }));
-  };
-
-  const limpiarFiltros = () => {
-    setFiltros({});
-    setBackendFilters({
-      from: '2025-09-01',
-      to: '2025-09-30'
+  const handleQuickPeriod = (days: number) => {
+    const today = new Date();
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() - days);
+    
+    setPeriodo({
+      inicio: startDate.toISOString().split('T')[0],
+      fin: today.toISOString().split('T')[0],
     });
   };
 
   return (
-    <div className="space-y-6">
-      {/* Encabezado */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="mx-auto max-w-7xl space-y-6">
+      {/* === ENCABEZADO === */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
-            Reportes e Informes
+          <h1 className="text-3xl font-bold text-[var(--text-primary)]">
+            Análisis de Ventas
           </h1>
-          <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>
-            Análisis de vendedores y estadísticas de ventas
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">
+            Reportes y estadísticas en tiempo real
           </p>
-          
-          {/* Toggle para alternar entre datos mock y backend */}
-          <div className="flex items-center gap-3 mt-3">
-            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              Datos Mock
-            </span>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          {/* Botones de exportación */}
             <button
-              onClick={() => setUseBackendData(!useBackendData)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                useBackendData 
-                  ? 'bg-[var(--primary-color)]' 
-                  : 'bg-[var(--border-color)]'
-              }`}
+              onClick={() => handleExportar('excel')}
+              disabled={isLoading}
+              className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700 disabled:opacity-50 transition-colors"
             >
-              <span 
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  useBackendData ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
+              <FileDown className="h-4 w-4" />
+              Exportar Excel
             </button>
-            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              Backend Producción
-            </span>
-            {salesError && (
-              <span className="text-xs px-2 py-1 rounded bg-red-100 text-red-600">
-                Error de conexión
-              </span>
-            )}
+            <button
+              onClick={() => handleExportar('pdf')}
+              disabled={isLoading}
+              className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 disabled:opacity-50 transition-colors"
+            >
+              <FileDown className="h-4 w-4" />
+              Exportar PDF
+            </button>
           </div>
-          
-          {/* Filtros de Backend */}
-          {useBackendData && (
-            <div className="flex items-center gap-4 mt-2 p-3 bg-[var(--surface-color)] border border-[var(--border-color)] rounded-lg">
-              <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                Período:
-              </span>
-              <input
-                type="date"
-                value={backendFilters.from}
-                onChange={(e) => handleBackendFiltersChange({ from: e.target.value })}
-                className="px-3 py-1 text-sm border border-[var(--border-color)] rounded"
-                style={{ 
-                  backgroundColor: 'var(--surface-color)',
-                  color: 'var(--text-primary)'
-                }}
-              />
-              <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>a</span>
-              <input
-                type="date"
-                value={backendFilters.to}
-                onChange={(e) => handleBackendFiltersChange({ to: e.target.value })}
-                className="px-3 py-1 text-sm border border-[var(--border-color)] rounded"
-                style={{ 
-                  backgroundColor: 'var(--surface-color)',
-                  color: 'var(--text-primary)'
-                }}
-              />
+        </div>
+
+      {/* === FILTROS === */}
+      <div className="rounded-xl bg-[var(--surface-color)] p-6 shadow-sm border border-[var(--border-color)]">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Calendar className="h-5 w-5 text-[var(--text-secondary)]" />
+            <span className="text-sm font-medium text-[var(--text-primary)]">
+              Período:
+            </span>
+            
+            <input
+              type="date"
+              value={periodo.inicio}
+              onChange={(e) => setPeriodo({ ...periodo, inicio: e.target.value })}
+              className="rounded-lg border border-[var(--border-color)] bg-[var(--surface-color)] px-3 py-2 text-sm text-[var(--text-primary)] focus:ring-2 focus:ring-blue-500"
+            />
+            
+            <span className="text-[var(--text-secondary)]">a</span>
+            
+            <input
+              type="date"
+              value={periodo.fin}
+              onChange={(e) => setPeriodo({ ...periodo, fin: e.target.value })}
+              className="rounded-lg border border-[var(--border-color)] bg-[var(--surface-color)] px-3 py-2 text-sm text-[var(--text-primary)] focus:ring-2 focus:ring-blue-500"
+            />              <button
+                onClick={() => refetch()}
+                disabled={isLoading}
+                className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                Actualizar
+              </button>
+            </div>
+
+            <div className="flex gap-2">
               <button
-                onClick={() => handleBackendFiltersChange({
-                  from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                  to: new Date().toISOString().split('T')[0]
-                })}
-                className="px-3 py-1 text-xs bg-[var(--primary-color)] text-white rounded hover:opacity-90 transition-colors"
+                onClick={() => handleQuickPeriod(30)}
+                className="rounded-lg bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 text-xs font-medium text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
               >
                 Últimos 30 días
               </button>
+              <button
+                onClick={() => handleQuickPeriod(90)}
+                className="rounded-lg bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 text-xs font-medium text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+              >
+                Últimos 3 meses
+              </button>
             </div>
-          )}
+          </div>
         </div>
-        
-        <div className="flex gap-3">
-          <button
-            onClick={() => handleExportar('excel')}
-            disabled={isExporting}
-            className="inline-flex items-center px-4 py-2 text-white rounded-lg font-medium transition-all duration-200 disabled:opacity-50"
-            style={{ 
-              backgroundColor: 'var(--accent-green)',
-              borderColor: 'var(--accent-green)'
-            }}
-          >
-            <span className="material-symbols-outlined mr-2 text-lg">
-              description
-            </span>
-            {isExporting ? 'Exportando...' : 'Exportar Excel'}
-          </button>
-          
-          <button
-            onClick={() => handleExportar('pdf')}
-            disabled={isExporting}
-            className="inline-flex items-center px-4 py-2 text-white rounded-lg font-medium transition-all duration-200 disabled:opacity-50"
-            style={{ 
-              backgroundColor: 'var(--accent-red)',
-              borderColor: 'var(--accent-red)'
-            }}
-          >
-            <span className="material-symbols-outlined mr-2 text-lg">
-              picture_as_pdf
-            </span>
-            {isExporting ? 'Exportando...' : 'Exportar PDF'}
-          </button>
-        </div>
-      </div>
 
-      {/* Estadísticas generales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Indicador de fuente de datos - Solo mostrar en desarrollo */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="lg:col-span-4 mb-4">
-            <div 
-              className="flex items-center justify-between p-4 rounded-lg border"
-              style={{ 
-                backgroundColor: useBackendData 
-                  ? 'color-mix(in oklab, var(--accent-green) 10%, var(--surface-color))'
-                  : 'color-mix(in oklab, var(--primary-color) 10%, var(--surface-color))',
-                borderColor: useBackendData 
-                  ? 'var(--accent-green)'
-                  : 'var(--primary-color)'
-              }}
-            >
-              <div className="flex items-center gap-3">
-                <div className={`w-3 h-3 rounded-full ${
-                  useBackendData && !salesError 
-                    ? 'bg-[var(--accent-green)]' 
-                    : useBackendData && salesError 
-                    ? 'bg-[var(--accent-red)]' 
-                    : 'bg-[var(--primary-color)]'
-                }`}></div>
-                <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
-                  {useBackendData 
-                    ? salesError 
-                      ? 'Backend no disponible - Mostrando datos de ejemplo'
-                      : 'Conectado al Backend de Producción'
-                    : 'Usando Datos de Demostración'
-                  }
-                </span>
+        {/* === TARJETAS DE ESTADÍSTICAS === */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {/* Ventas Totales */}
+          <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 p-6 text-white shadow-lg transition-transform hover:scale-105">
+            <div className="absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-white/10" />
+            <div className="relative">
+              <div className="mb-4 flex items-center justify-between">
+                <span className="text-sm font-medium opacity-90">Ventas Totales</span>
+                <div className="rounded-lg bg-white/20 p-2">
+                  <DollarSign className="h-5 w-5" />
+                </div>
               </div>
-              
-              {useBackendData && !salesError && (
-                <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  Datos del servidor de producción
+              <div className="mb-2 text-3xl font-bold">
+                {formatCurrency(stats.totalSales)}
+              </div>
+              <div className={`flex items-center gap-1 text-sm ${
+                stats.isPositive ? 'text-green-100' : 'text-red-100'
+              }`}>
+                <TrendingUp className="h-4 w-4" />
+                <span>{stats.isPositive ? '+' : ''}{stats.performance.toFixed(1)}%</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Total de Pedidos */}
+          <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 p-6 text-white shadow-lg transition-transform hover:scale-105">
+            <div className="absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-white/10" />
+            <div className="relative">
+              <div className="mb-4 flex items-center justify-between">
+                <span className="text-sm font-medium opacity-90">Total Pedidos</span>
+                <div className="rounded-lg bg-white/20 p-2">
+                  <ShoppingCart className="h-5 w-5" />
                 </div>
-              )}
-              
-              {salesError && (
-                <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  Mostrando datos de demostración debido a problemas de conectividad
+              </div>
+              <div className="mb-2 text-3xl font-bold">
+                {formatNumber(stats.totalOrders)}
+              </div>
+              <div className="text-sm text-purple-100">
+                Pedidos procesados
+              </div>
+            </div>
+          </div>
+
+          {/* Valor Promedio */}
+          <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 p-6 text-white shadow-lg transition-transform hover:scale-105">
+            <div className="absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-white/10" />
+            <div className="relative">
+              <div className="mb-4 flex items-center justify-between">
+                <span className="text-sm font-medium opacity-90">Valor Promedio</span>
+                <div className="rounded-lg bg-white/20 p-2">
+                  <BarChart3 className="h-5 w-5" />
                 </div>
-              )}
+              </div>
+              <div className="mb-2 text-3xl font-bold">
+                {formatCurrency(stats.averageOrderValue)}
+              </div>
+              <div className="text-sm text-orange-100">
+                Por pedido
+              </div>
             </div>
           </div>
-        )}
-        
-        <div 
-          className="rounded-xl shadow-sm p-6"
-          style={{ 
-            backgroundColor: 'var(--surface-color)',
-            borderColor: 'color-mix(in oklab, var(--border-color) 25%, transparent)',
-            border: '1px solid color-mix(in oklab, var(--border-color) 10%, transparent) color-mix(in oklab, var(--border-color) 10%, transparent)'
-          }}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
-                Ventas Totales
-              </p>
-              <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
-                {isLoading ? (
-                  <span 
-                    className="animate-pulse h-8 w-24 rounded"
-                    style={{ backgroundColor: 'var(--border-color)' }}
-                  ></span>
-                ) : (
-                  `$${estadisticasActuales?.ventasTotales?.toLocaleString() || '0'}`
-                )}
-              </p>
-            </div>
-            <div 
-              className="p-3 rounded-lg"
-              style={{ backgroundColor: 'color-mix(in oklab, var(--primary-color) 15%, var(--surface-color))' }}
-            >
-              <span 
-                className="material-symbols-outlined"
-                style={{ color: 'var(--primary-color)' }}
-              >
-                trending_up
-              </span>
+
+          {/* Producto Top */}
+          <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-500 to-green-600 p-6 text-white shadow-lg transition-transform hover:scale-105">
+            <div className="absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-white/10" />
+            <div className="relative">
+              <div className="mb-4 flex items-center justify-between">
+                <span className="text-sm font-medium opacity-90">Producto Top</span>
+                <div className="rounded-lg bg-white/20 p-2">
+                  <Package className="h-5 w-5" />
+                </div>
+              </div>
+              <div className="mb-2 text-xl font-bold line-clamp-2">
+                {stats.topProduct}
+              </div>
+              <div className="text-sm text-green-100">
+                Más vendido
+              </div>
             </div>
           </div>
         </div>
 
-        <div 
-          className="rounded-xl shadow-sm p-6"
-          style={{ 
-            backgroundColor: 'var(--surface-color)',
-            borderColor: 'color-mix(in oklab, var(--border-color) 25%, transparent)',
-            border: '1px solid color-mix(in oklab, var(--border-color) 10%, transparent)'
-          }}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
-                Pedidos Pendientes
-              </p>
-              <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
-                {isLoading ? (
-                  <span 
-                    className="animate-pulse h-8 w-16 rounded"
-                    style={{ backgroundColor: 'var(--border-color)' }}
-                  ></span>
-                ) : (
-                  estadisticasActuales?.pedidosPendientes || '0'
-                )}
-              </p>
-            </div>
-            <div 
-              className="p-3 rounded-lg"
-              style={{ backgroundColor: 'color-mix(in oklab, #f59e0b 15%, var(--surface-color))' }}
-            >
-              <span className="material-symbols-outlined" style={{ color: '#f59e0b' }}>
-                pending
-              </span>
-            </div>
+        {/* === GRÁFICOS === */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {/* Top Vendedores */}
+        <div className="rounded-xl bg-[var(--surface-color)] p-6 shadow-sm border border-[var(--border-color)]">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+              Top Vendedores
+            </h2>
+            <Users className="h-5 w-5 text-[var(--text-secondary)]" />
           </div>
-        </div>
-
-        <div 
-          className="rounded-xl shadow-sm p-6"
-          style={{ 
-            backgroundColor: 'var(--surface-color)',
-            borderColor: 'color-mix(in oklab, var(--border-color) 25%, transparent)',
-            border: '1px solid color-mix(in oklab, var(--border-color) 10%, transparent)'
-          }}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
-                Productos en Stock
-              </p>
-              <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
-                {isLoading ? (
-                  <span 
-                    className="animate-pulse h-8 w-20 rounded"
-                    style={{ backgroundColor: 'var(--border-color)' }}
-                  ></span>
-                ) : (
-                  estadisticasActuales?.productosEnStock?.toLocaleString() || '0'
-                )}
-              </p>
-            </div>
-            <div 
-              className="p-3 rounded-lg"
-              style={{ backgroundColor: 'color-mix(in oklab, var(--accent-green) 15%, var(--surface-color))' }}
-            >
-              <span 
-                className="material-symbols-outlined"
-                style={{ color: 'var(--accent-green)' }}
-              >
-                inventory
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div 
-          className="rounded-xl shadow-sm p-6"
-          style={{ 
-            backgroundColor: 'var(--surface-color)',
-            borderColor: 'color-mix(in oklab, var(--border-color) 25%, transparent)',
-            border: '1px solid color-mix(in oklab, var(--border-color) 10%, transparent)'
-          }}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
-                Rendimiento Ventas
-              </p>
-              <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
-                {isLoading ? (
-                  <span 
-                    className="animate-pulse h-8 w-16 rounded"
-                    style={{ backgroundColor: 'var(--border-color)' }}
-                  ></span>
-                ) : (
-                  `+${estadisticasActuales?.rendimientoVentas?.porcentaje || '0'}%`
-                )}
-              </p>
-              <p className="text-sm" style={{ color: 'var(--accent-green)' }}>
-                {estadisticasActuales?.rendimientoVentas?.comparacionAnterior && 
-                  `+${estadisticasActuales.rendimientoVentas.comparacionAnterior}% vs mes anterior`
-                }
-              </p>
-            </div>
-            <div 
-              className="p-3 rounded-lg"
-              style={{ backgroundColor: 'color-mix(in oklab, #a855f7 15%, var(--surface-color))' }}
-            >
-              <span className="material-symbols-outlined" style={{ color: '#a855f7' }}>
-                analytics
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Gráfico de rendimiento de ventas */}
-        <div 
-          className="rounded-xl shadow-sm p-6"
-          style={{ 
-            backgroundColor: 'var(--surface-color)',
-            borderColor: 'color-mix(in oklab, var(--border-color) 25%, transparent)',
-            border: '1px solid color-mix(in oklab, var(--border-color) 10%, transparent)'
-          }}
-        >
-          <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
-            Rendimiento de Ventas
-          </h3>
           
-          {isLoading ? (
-            <div 
-              className="animate-pulse h-48 rounded"
-              style={{ backgroundColor: 'var(--border-color)' }}
-            ></div>
-          ) : (
-            <div className="relative h-48 w-full">
-              <svg viewBox="0 0 500 150" className="w-full h-full">
-                <defs>
-                  <linearGradient id="gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="var(--primary-color)" stopOpacity="0.3" />
-                    <stop offset="100%" stopColor="var(--primary-color)" stopOpacity="0.1" />
-                  </linearGradient>
-                </defs>
-                
-                {datosGraficosActuales?.puntos && (
-                  <path
-                    d={`M ${datosGraficosActuales.puntos.map((p: {x: number, y: number}) => `${p.x},${p.y}`).join(' L ')}`}
-                    stroke="var(--primary-color)"
-                    strokeWidth="3"
-                    fill="none"
-                    className="drop-shadow-sm"
-                  />
-                )}
-                
-                {datosGraficosActuales?.puntos && (
-                  <path
-                    d={`M ${datosGraficosActuales.puntos.map((p: {x: number, y: number}) => `${p.x},${p.y}`).join(' L ')} L ${datosGraficosActuales.puntos[datosGraficosActuales.puntos.length - 1]?.x},150 L ${datosGraficosActuales.puntos[0]?.x},150 Z`}
-                    fill="url(#gradient)"
-                  />
-                )}
-                
-                {datosGraficosActuales?.puntos?.map((punto: {x: number, y: number}, index: number) => (
-                  <circle
-                    key={index}
-                    cx={punto.x}
-                    cy={punto.y}
-                    r="4"
-                    fill="var(--primary-color)"
-                    className="drop-shadow-sm"
-                  />
-                ))}
-              </svg>
-            </div>
-          )}
+          {(() => {
+            // Agrupar ventas por vendedor
+            const ventasPorVendedor = tableData.reduce((acc: { [key: string]: number }, row: { vendedor: string; ingresos: number }) => {
+              acc[row.vendedor] = (acc[row.vendedor] || 0) + row.ingresos;
+              return acc;
+            }, {});
+            
+            // Convertir a array y ordenar
+            const topVendedores = Object.entries(ventasPorVendedor)
+              .map(([nombre, total]) => ({ nombre, total: total as number }))
+              .sort((a, b) => b.total - a.total)
+              .slice(0, 5);
+            
+            const maxVentas = topVendedores.length > 0 ? topVendedores[0].total : 0;
+            
+            return topVendedores.length === 0 ? (
+              <div className="flex h-64 items-center justify-center text-[var(--text-secondary)]">
+                No hay datos de vendedores disponibles
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {topVendedores.map((vendedor, index) => {
+                  const percentage = maxVentas > 0 ? (vendedor.total / maxVentas) * 100 : 0;
+                  const colors = [
+                    'from-blue-500 to-blue-600',
+                    'from-purple-500 to-purple-600',
+                    'from-orange-500 to-orange-600',
+                    'from-green-500 to-green-600',
+                    'from-pink-500 to-pink-600'
+                  ];
+                  
+                  return (
+                    <div key={vendedor.nombre}>
+                      <div className="mb-2 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className={`flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br ${colors[index]} shadow-sm`}>
+                            <span className="text-xs font-bold text-white">#{index + 1}</span>
+                          </div>
+                          <span className="font-medium text-[var(--text-primary)]">
+                            {vendedor.nombre}
+                          </span>
+                        </div>
+                        <span className="text-sm font-semibold text-[var(--text-primary)]">
+                          {formatCurrency(vendedor.total)}
+                        </span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+                        <div
+                          className={`h-2 rounded-full bg-gradient-to-r ${colors[index]} transition-all`}
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
 
-        {/* Distribución de productos */}
-        <div 
-          className="rounded-xl shadow-sm p-6"
-          style={{ 
-            backgroundColor: 'var(--surface-color)',
-            borderColor: 'color-mix(in oklab, var(--border-color) 25%, transparent)',
-            border: '1px solid color-mix(in oklab, var(--border-color) 10%, transparent)'
-          }}
-        >
-          <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
-            Distribución de Productos
-          </h3>
+        {/* Top Productos */}
+        <div className="rounded-xl bg-[var(--surface-color)] p-6 shadow-sm border border-[var(--border-color)]">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+              Productos Más Vendidos
+            </h2>
+            <Package className="h-5 w-5 text-[var(--text-secondary)]" />
+          </div>
           
-          {isLoading ? (
-            <div 
-              className="animate-pulse h-48 rounded"
-              style={{ backgroundColor: 'var(--border-color)' }}
-            ></div>
+          {chartData.topProducts.length === 0 ? (
+            <div className="flex h-64 items-center justify-center text-[var(--text-secondary)]">
+              No hay datos de productos disponibles
+            </div>
           ) : (
             <div className="space-y-4">
-              {datosGraficosActuales?.porcentajes?.map((item: {producto: string, porcentaje: number, color: string}, index: number) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div 
-                      className="w-4 h-4 rounded-full" 
-                      style={{ backgroundColor: item.color }}
-                    ></div>
-                    <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                      {item.producto}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="w-20 h-2 rounded-full overflow-hidden"
-                      style={{ backgroundColor: 'var(--border-color)' }}
-                    >
-                      <div 
-                        className="h-full rounded-full transition-all duration-300"
-                        style={{ 
-                          width: `${item.porcentaje}%`,
-                          backgroundColor: item.color 
-                        }}
-                      ></div>
+              {chartData.topProducts.map((product: { nombre: string; valor: number }, index: number) => {
+                const maxAmount = Math.max(...chartData.topProducts.map((p: { valor: number }) => p.valor || 0));
+                const percentage = maxAmount > 0 ? ((product.valor || 0) / maxAmount) * 100 : 0;
+                
+                return (
+                  <div key={index}>
+                    <div className="mb-1 flex items-center justify-between text-sm">
+                      <span className="font-medium text-[var(--text-primary)] line-clamp-1">
+                        {product.nombre}
+                      </span>
+                      <span className="text-[var(--text-secondary)]">
+                        {formatCurrency(product.valor || 0)}
+                      </span>
                     </div>
-                    <span 
-                      className="text-sm font-bold min-w-[3rem] text-right"
-                      style={{ color: 'var(--text-primary)' }}
-                    >
-                      {item.porcentaje}%
-                    </span>
+                    <div className="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+                      <div
+                        className="h-2 rounded-full bg-gradient-to-r from-green-500 to-green-600 transition-all"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
-      </div>
-
-      {/* Filtros */}
-      <div 
-        className="rounded-xl shadow-sm p-6"
-        style={{ 
-          backgroundColor: 'var(--surface-color)',
-          borderColor: 'color-mix(in oklab, var(--border-color) 25%, transparent)',
-          border: '1px solid color-mix(in oklab, var(--border-color) 10%, transparent)'
-        }}
-      >
-        <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
-          Filtros de Búsqueda
-          {(filtros.producto || filtros.estado || filtros.fechaInicio || filtros.fechaFin) && (
-            <span className="ml-2 text-sm px-2 py-1 rounded-full bg-[var(--primary-color)] text-white">
-              Filtros aplicados
-            </span>
-          )}
-        </h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
-              Producto
-            </label>
-            <input
-              type="text"
-              value={filtros.producto || ''}
-              onChange={(e) => handleFiltroChange('producto', e.target.value)}
-              placeholder="Buscar producto..."
-              className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:outline-none transition-all duration-200"
-              style={{ 
-                backgroundColor: 'var(--surface-color)',
-                borderColor: 'var(--border-color)',
-                border: '1px solid color-mix(in oklab, var(--border-color) 10%, transparent)',
-                color: 'var(--text-primary)',
-                boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.05)'
-              }}
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
-              Estado
-            </label>
-            <select
-              value={filtros.estado || ''}
-              onChange={(e) => handleFiltroChange('estado', e.target.value)}
-              className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:outline-none transition-all duration-200"
-              style={{ 
-                backgroundColor: 'var(--surface-color)',
-                borderColor: 'var(--border-color)',
-                border: '1px solid color-mix(in oklab, var(--border-color) 10%, transparent)',
-                color: 'var(--text-primary)',
-                boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.05)'
-              }}
-            >
-              <option value="">Todos los estados</option>
-              <option value="completado">Completado</option>
-              <option value="pendiente">Pendiente</option>
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
-              Fecha Inicio
-            </label>
-            <input
-              type="date"
-              value={filtros.fechaInicio || ''}
-              onChange={(e) => handleFiltroChange('fechaInicio', e.target.value)}
-              className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:outline-none transition-all duration-200"
-              style={{ 
-                backgroundColor: 'var(--surface-color)',
-                borderColor: 'var(--border-color)',
-                border: '1px solid color-mix(in oklab, var(--border-color) 10%, transparent)',
-                color: 'var(--text-primary)',
-                boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.05)'
-              }}
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
-              Fecha Fin
-            </label>
-            <input
-              type="date"
-              value={filtros.fechaFin || ''}
-              onChange={(e) => handleFiltroChange('fechaFin', e.target.value)}
-              className="w-full px-3 py-2 rounded-lg focus:ring-2 focus:outline-none transition-all duration-200"
-              style={{ 
-                backgroundColor: 'var(--surface-color)',
-                borderColor: 'var(--border-color)',
-                border: '1px solid color-mix(in oklab, var(--border-color) 10%, transparent)',
-                color: 'var(--text-primary)',
-                boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.05)'
-              }}
-            />
-          </div>
-          
-          <div className="flex items-end">
-            <button
-              onClick={limpiarFiltros}
-              className="w-full px-4 py-2 text-white rounded-lg font-medium transition-all duration-200 hover:opacity-90"
-              style={{ backgroundColor: 'var(--text-secondary)' }}
-            >
-              Limpiar Filtros
-            </button>
-          </div>
         </div>
-      </div>
 
-      {/* Tabla de ventas por vendedor */}
-      <div 
-        className="rounded-xl shadow-sm overflow-hidden"
-        style={{ 
-          backgroundColor: 'var(--surface-color)',
-          borderColor: 'color-mix(in oklab, var(--border-color) 25%, transparent)',
-          border: '1px solid color-mix(in oklab, var(--border-color) 10%, transparent)'
-        }}
-      >
-        <div 
-          className="px-6 py-4"
-          style={{ 
-            borderBottomColor: 'var(--border-color)',
-            borderBottomWidth: '1px',
-            borderBottomStyle: 'solid'
-          }}
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
-              Ventas por Vendedor
-            </h3>
-            <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              {ventasDataActuales?.data ? (
-                <>
-                  {ventasDataActuales.data.length} resultado{ventasDataActuales.data.length !== 1 ? 's' : ''}
-                  {(filtros.producto || filtros.estado || filtros.fechaInicio || filtros.fechaFin) && (
-                    <span className="ml-2 text-xs px-2 py-1 rounded bg-[var(--primary-color)]/10 text-[var(--primary-color)]">
-                      filtrados
-                    </span>
-                  )}
-                </>
-              ) : (
-                'Cargando...'
-              )}
-            </div>
+        {/* === TABLA DE VENTAS === */}
+        <div className="rounded-xl bg-[var(--surface-color)] shadow-sm border border-[var(--border-color)]">
+          <div className="border-b border-[var(--border-color)] p-6">
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+              Detalle de Ventas por Vendedor
+            </h2>
+            <p className="mt-1 text-sm text-[var(--text-secondary)]">
+              {tableData.length} resultados
+            </p>
           </div>
-        </div>
-        
-        <div className="overflow-x-auto">
-          {isLoading ? (
-            <div className="p-6">
-              <div className="animate-pulse space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div 
-                    key={i} 
-                    className="h-4 rounded w-full"
-                    style={{ backgroundColor: 'var(--border-color)' }}
-                  ></div>
-                ))}
-              </div>
+          
+          {tableData.length === 0 ? (
+            <div className="flex h-64 items-center justify-center text-[var(--text-secondary)]">
+              No hay datos de ventas disponibles para el período seleccionado
             </div>
           ) : (
-            <table className="min-w-full">
-              <thead style={{ backgroundColor: 'color-mix(in oklab, var(--border-color) 50%, var(--surface-color))' }}>
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
-                    Vendedor
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
-                    Producto
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
-                    Cantidad
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
-                    Ingresos
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
-                    Estado
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
-                    Fecha
-                  </th>
-                </tr>
-              </thead>
-              <tbody 
-                className="divide-y"
-                style={{ 
-                  backgroundColor: 'var(--surface-color)',
-                  borderColor: 'var(--border-color)'
-                }}
-              >
-                {ventasDataActuales?.data?.map((venta) => (
-                  <tr 
-                    key={venta.id} 
-                    className="transition-colors hover:opacity-90"
-                    style={{ backgroundColor: 'var(--surface-color)' }}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                        {venta.vendedor}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                        {venta.producto}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                        {venta.cantidad}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                        ${venta.ingresos.toLocaleString()}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span 
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          venta.estado === 'completado' ? 'status-completed' : 'status-pending'
-                        }`}
-                      >
-                        {venta.estado === 'completado' ? 'Completado' : 'Pendiente'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                        {new Date(venta.fecha).toLocaleDateString()}
-                      </div>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-[var(--border-color)]/30">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--text-primary)]">
+                      Vendedor
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--text-primary)]">
+                      Producto
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--text-primary)]">
+                      Cantidad
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--text-primary)]">
+                      Ingresos
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--text-primary)]">
+                      Estado
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--text-primary)]">
+                      Fecha
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-[var(--border-color)]">
+                  {tableData.map((row: { vendedor: string; producto: string; cantidad: number; ingresos: number; estado: string; fecha: string }, index: number) => (
+                    <tr key={index} className="hover:bg-[var(--border-color)]/30 transition-colors">
+                      <td className="whitespace-nowrap px-6 py-4">
+                        <div className="flex items-center">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 shadow-sm">
+                            <Users className="h-4 w-4 text-white" />
+                          </div>
+                          <div className="ml-3">
+                            <div className="text-sm font-medium text-[var(--text-primary)]">
+                              {row.vendedor}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-primary)]">
+                        {row.producto}
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">
+                        {formatNumber(row.cantidad)}
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-sm font-semibold text-[var(--text-primary)]">
+                        {formatCurrency(row.ingresos)}
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4">
+                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                          row.estado === 'completado' || row.estado === 'completed'
+                            ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-500/20'
+                            : row.estado === 'pendiente' || row.estado === 'pending'
+                            ? 'bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400 border border-amber-500/20'
+                            : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-500/20'
+                        }`}>
+                          {row.estado}
+                        </span>
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">
+                        {formatDate(row.fecha)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
-        
-        {!isLoading && (!ventasDataActuales?.data || ventasDataActuales.data.length === 0) && (
-          <div className="text-center py-8">
-            <span 
-              className="material-symbols-outlined text-4xl mb-2"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              {(filtros.producto || filtros.estado || filtros.fechaInicio || filtros.fechaFin) ? 'filter_list_off' : 'search_off'}
-            </span>
-            <p style={{ color: 'var(--text-secondary)' }}>
-              {(filtros.producto || filtros.estado || filtros.fechaInicio || filtros.fechaFin) 
-                ? 'No se encontraron ventas con los filtros aplicados'
-                : 'No hay datos de ventas disponibles'
-              }
-            </p>
-            {(filtros.producto || filtros.estado || filtros.fechaInicio || filtros.fechaFin) && (
-              <button
-                onClick={limpiarFiltros}
-                className="mt-3 px-4 py-2 text-sm text-[var(--primary-color)] hover:bg-[var(--primary-color)]/10 rounded-lg transition-colors"
-              >
-                Limpiar filtros
-              </button>
-            )}
-          </div>
-        )}
       </div>
-    </div>
   );
-};
-
-export default ReportesPage;
+}
