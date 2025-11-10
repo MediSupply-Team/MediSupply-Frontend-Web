@@ -1,0 +1,172 @@
+{
+  "common": {
+    "appName": "MediSupply",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "export": "Exportar",
+    "import": "Importar",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "close": "Cerrar",
+    "back": "Volver",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "all": "Todos",
+    "none": "Ninguno",
+    "actions": "Acciones",
+    "status": "Estado",
+    "date": "Fecha",
+    "time": "Hora",
+    "confirm": "Confirmar",
+    "total": "Total"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "suppliers": "Proveedores",
+    "products": "Productos",
+    "sellers": "Vendedores",
+    "reports": "Reportes",
+    "routes": "Rutas",
+    "inventory": "Inventario",
+    "profile": "Mi Perfil",
+    "settings": "Configuración",
+    "logout": "Cerrar Sesión"
+  },
+  "products": {
+    "title": "Productos",
+    "add": "Agregar Producto",
+    "bulkUpload": "Carga Masiva",
+    "name": "Nombre",
+    "sku": "SKU",
+    "location": "Ubicación",
+    "stock": "Stock",
+    "expiration": "Vencimiento",
+    "category": "Categoría",
+    "price": "Precio",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "lowStock": "Stock Bajo",
+    "outOfStock": "Sin Stock",
+    "actions": {
+      "registerInflow": "Registrar Ingreso",
+      "registerOutflow": "Registrar Salida",
+      "purchase": "Compra",
+      "sale": "Venta"
+    }
+  },
+  "inventory": {
+    "movement": "Movimiento",
+    "inflow": "Ingreso",
+    "outflow": "Salida",
+    "batch": "Lote",
+    "warehouse": "Almacén",
+    "quantity": "Cantidad",
+    "expirationDate": "Fecha de Vencimiento",
+    "reference": "Referencia",
+    "observations": "Observaciones",
+    "registerSuccess": "Movimiento registrado exitosamente",
+    "registerError": "Error al registrar movimiento"
+  },
+  "profile": {
+    "title": "Configuración",
+    "description": "Gestiona tus preferencias de idioma, región y aplicación",
+    "tabs": {
+      "personal": "Información Personal",
+      "settings": "Configuración",
+      "security": "Seguridad"
+    },
+    "personal": {
+      "title": "Información Personal",
+      "accountActive": "Cuenta Activa",
+      "memberSince": "Miembro desde",
+      "lastAccess": "Último acceso",
+      "role": "Rol",
+      "firstName": "Nombre",
+      "lastName": "Apellido",
+      "email": "Correo Electrónico",
+      "phone": "Teléfono",
+      "position": "Cargo",
+      "department": "Departamento",
+      "biography": "Biografía",
+      "biographyPlaceholder": "Cuéntanos un poco sobre ti..."
+    },
+    "settings": {
+      "language": {
+        "title": "Idioma y Región",
+        "interface": "Idioma de la interfaz",
+        "country": "País/Región",
+        "timezone": "Zona Horaria",
+        "currency": "Moneda",
+        "description": "Cambia el idioma de toda la aplicación"
+      },
+      "format": {
+        "title": "Formato de Datos",
+        "date": "Formato de Fecha",
+        "time": "Formato de Hora",
+        "decimal": "Separador Decimal",
+        "number": "Formato de Números"
+      },
+      "preferences": {
+        "title": "Preferencias de la Aplicación",
+        "darkMode": "Modo Oscuro",
+        "darkModeDesc": "Activa el tema oscuro para una mejor experiencia visual",
+        "emailNotifications": "Notificaciones por Email",
+        "emailNotificationsDesc": "Recibe actualizaciones importantes por correo electrónico",
+        "inventoryAlerts": "Alertas de Inventario",
+        "inventoryAlertsDesc": "Notificaciones cuando el stock esté bajo",
+        "autoSave": "Autoguardado",
+        "autoSaveDesc": "Guarda automáticamente los cambios mientras trabajas",
+        "compactView": "Compactación de Datos",
+        "compactViewDesc": "Muestra más información en pantalla"
+      },
+      "restore": "Restaurar Valores por Defecto",
+      "saveSettings": "Guardar Configuración"
+    },
+    "security": {
+      "changePassword": {
+        "title": "Cambiar Contraseña",
+        "current": "Contraseña Actual",
+        "new": "Nueva Contraseña",
+        "confirm": "Confirmar Nueva Contraseña",
+        "update": "Actualizar Contraseña"
+      },
+      "twoFactor": {
+        "title": "Autenticación de Dos Factores",
+        "active": "2FA Activo",
+        "description": "Protección adicional para tu cuenta",
+        "disable": "Desactivar 2FA"
+      },
+      "sessions": {
+        "title": "Sesiones Activas",
+        "current": "Actual",
+        "close": "Cerrar",
+        "closeAll": "Cerrar Todas las Otras Sesiones"
+      }
+    }
+  },
+  "countries": {
+    "CO": "Colombia",
+    "MX": "México",
+    "AR": "Argentina",
+    "PE": "Perú",
+    "CL": "Chile",
+    "US": "Estados Unidos",
+    "GB": "Reino Unido"
+  },
+  "departments": {
+    "administration": "Administración",
+    "sales": "Ventas",
+    "inventory": "Inventario",
+    "logistics": "Logística"
+  },
+  "regionalTerms": {
+    "cellphone": "Celular",
+    "truck": "Camioneta",
+    "computer": "Computadora"
+  }
+}
