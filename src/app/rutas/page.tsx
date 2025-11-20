@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import RouteConfig from '@/components/RouteConfig';
 import OrdersTable from '@/components/OrdersTable';
 
@@ -16,7 +17,27 @@ interface Order {
   selected: boolean;
 }
 
+interface RouteConfiguration {
+  bodega_origen: string;
+  hora_inicio: string;
+  camion_capacidad_kg: number;
+  camion_capacidad_m3: number;
+  retornar_bodega: boolean;
+  max_paradas: number;
+}
+
 export default function RutasPage() {
+  const router = useRouter();
+  const [isGenerating, setIsGenerating] = useState(false);
+  const routeConfig: RouteConfiguration = {
+    bodega_origen: 'Calle 100 #15-20, Bogotá',
+    hora_inicio: '07:30 AM',
+    camion_capacidad_kg: 500,
+    camion_capacidad_m3: 12,
+    retornar_bodega: true,
+    max_paradas: 10,
+  };
+  
   const [orders, setOrders] = useState<Order[]>([
     {
       id: '#ORD-001',
@@ -89,15 +110,65 @@ export default function RutasPage() {
     );
   };
 
-  const handleGenerateRoute = () => {
+  const handleGenerateRoute = async () => {
     const selectedOrders = orders.filter(order => order.selected);
     if (selectedOrders.length === 0) {
       alert('Por favor selecciona al menos un pedido para generar la ruta.');
       return;
     }
     
-    // Aquí se implementaría la lógica para generar la ruta
-    alert(`Generando ruta óptima para ${selectedOrders.length} pedidos...`);
+    setIsGenerating(true);
+    
+    try {
+      // Preparar el payload según la estructura del backend
+      const payload = {
+        configuracion: routeConfig,
+        pedidos: selectedOrders.map(order => ({
+          id_pedido: order.id,
+          cliente: order.cliente,
+          direccion: order.direccion,
+          fecha: order.fecha,
+          cajas: order.cajas,
+          urgencia: order.urgencia.toLowerCase(),
+          zona: order.zona.toLowerCase(),
+          peso_kg: order.cajas * 2.5, // Estimación de 2.5kg por caja
+          volumen_m3: order.cajas * 0.04, // Estimación de 0.04m³ por caja
+        })),
+        costo_km: 2000,
+        costo_hora: 15000,
+      };
+      
+      // Enviar POST al backend
+      const response = await fetch(
+        'https://medisupply-backend.duckdns.org/venta/api/v1/routes/optimize',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error('Error al generar la ruta');
+      }
+      
+      const routeData = await response.json();
+      
+      // Guardar los datos en sessionStorage para acceder desde la página de resultados
+      sessionStorage.setItem('routeOptimizationResult', JSON.stringify(routeData));
+      sessionStorage.setItem('routeConfiguration', JSON.stringify(routeConfig));
+      
+      // Navegar a la página de resultados
+      router.push('/rutas/resultado');
+      
+    } catch (error) {
+      console.error('Error al generar la ruta:', error);
+      alert('Error al generar la ruta. Por favor, intenta nuevamente.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const allSelected = orders.length > 0 && orders.every(order => order.selected);
@@ -120,10 +191,20 @@ export default function RutasPage() {
             </button>
             <button 
               onClick={handleGenerateRoute}
-              className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium bg-[var(--primary-color)] text-white hover:bg-[var(--secondary-color)] transition-colors"
+              disabled={isGenerating}
+              className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium bg-[var(--primary-color)] text-white hover:bg-[var(--secondary-color)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span className="material-symbols-outlined text-base">route</span>
-              <span>Generar Ruta Óptima</span>
+              {isGenerating ? (
+                <>
+                  <span className="material-symbols-outlined text-base animate-spin">refresh</span>
+                  <span>Generando...</span>
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-base">route</span>
+                  <span>Generar Ruta Óptima</span>
+                </>
+              )}
             </button>
           </div>
         </div>
