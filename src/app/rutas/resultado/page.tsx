@@ -90,9 +90,58 @@ export default function ResultadoRutaPage() {
     router.push('/rutas');
   };
 
-  const handleAccept = () => {
-    alert('Ruta aceptada y asignada al conductor');
-    router.push('/rutas');
+  const handleAccept = async () => {
+    if (!routeData) return;
+
+    try {
+      // Preparar el payload para crear la ruta
+      const routePayload = {
+        secuencia_entregas: routeData.secuencia_entregas,
+        resumen: routeData.resumen,
+        geometria: routeData.geometria,
+        alertas: routeData.alertas,
+        optimized_by: 'system',
+        notes: `Ruta optimizada - ${routeData.resumen.total_entregas} entregas, ${routeData.resumen.total_cajas} cajas`,
+      };
+
+      // POST para crear la ruta
+      const createResponse = await fetch(
+        'https://medisupply-backend.duckdns.org/venta/api/v1/rutas',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(routePayload),
+        }
+      );
+
+      if (!createResponse.ok) {
+        throw new Error('Error al crear la ruta');
+      }
+
+      const createResult = await createResponse.json();
+      const routeId = createResult.id;
+
+      // GET para obtener los detalles completos de la ruta
+      const detailsResponse = await fetch(
+        `https://medisupply-backend.duckdns.org/venta/api/v1/rutas/${routeId}`
+      );
+
+      if (!detailsResponse.ok) {
+        throw new Error('Error al obtener los detalles de la ruta');
+      }
+
+      const routeDetails = await detailsResponse.json();
+
+      // Guardar los detalles en sessionStorage y navegar
+      sessionStorage.setItem('routeDetails', JSON.stringify(routeDetails));
+      router.push(`/rutas/detalle/${routeId}`);
+
+    } catch (error) {
+      console.error('Error al aceptar la ruta:', error);
+      alert('Error al aceptar la ruta. Por favor, intenta nuevamente.');
+    }
   };
 
   const formatCurrency = (value: number) => {
