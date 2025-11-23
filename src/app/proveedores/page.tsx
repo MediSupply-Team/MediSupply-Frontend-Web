@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Plus, Upload, Search, Building2, Phone, Mail, MapPin, FileText } from 'lucide-react';
 
 interface Proveedor {
@@ -30,6 +31,7 @@ interface ProveedoresResponse {
 }
 
 export default function ProveedoresPage() {
+  const router = useRouter();
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -69,8 +71,7 @@ export default function ProveedoresPage() {
   const totalPages = Math.ceil(total / pageSize);
 
   const handleAgregarProveedor = () => {
-    // TODO: Implementar navegación a formulario de agregar
-    console.log('Agregar proveedor individual');
+    router.push('/proveedores/agregar');
   };
 
   const handleAgregarMasivo = () => {
