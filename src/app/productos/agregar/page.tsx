@@ -51,7 +51,38 @@ export default function AgregarProductoPage() {
         precioVenta: data.precioVenta || 0,
       };
 
-      await createMutation.mutateAsync(processedData);
+      // 1. Crear el producto en el catálogo
+      const productoCreado = await createMutation.mutateAsync(processedData);
+
+      // 2. Si hay stock inicial, crear movimiento de inventario
+      if (processedData.stockInicial > 0) {
+        try {
+          const movimientoPayload = {
+            producto_id: productoCreado.codigo || data.sku,
+            bodega_id: data.almacen || 'ALMACEN_PRINCIPAL',
+            pais: 'CO',
+            lote: `LOTE_${data.sku}_${new Date().getFullYear()}`,
+            tipo_movimiento: 'INGRESO',
+            motivo: 'STOCK_INICIAL',
+            cantidad: processedData.stockInicial,
+            fecha_vencimiento: data.fechaVencimiento || undefined,
+            usuario_id: 'SYSTEM',
+            referencia_documento: `INICIAL_${data.sku}`,
+            observaciones: `Stock inicial del producto ${data.nombre}`,
+          };
+
+          await fetch('https://medisupply-backend.duckdns.org/venta/api/v1/inventory/movements', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(movimientoPayload),
+          });
+        } catch (invError) {
+          console.error('Error al crear movimiento de inventario:', invError);
+          // No fallar la creación del producto si falla el movimiento
+        }
+      }
 
       addNotification({
         tipo: 'success',
