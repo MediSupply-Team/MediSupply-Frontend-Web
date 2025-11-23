@@ -75,8 +75,7 @@ export default function ProveedoresPage() {
   };
 
   const handleAgregarMasivo = () => {
-    // TODO: Implementar carga masiva
-    console.log('Agregar proveedores de forma masiva');
+    router.push('/proveedores/carga-masiva');
   };
 
   return (
