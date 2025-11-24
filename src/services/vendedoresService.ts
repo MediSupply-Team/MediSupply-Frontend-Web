@@ -29,6 +29,48 @@ export interface VendedoresResponse {
   took_ms: number;
 }
 
+export interface CrearVendedorRequest {
+  identificacion: string;
+  nombre_completo: string;
+  email: string;
+  telefono: string;
+  pais: string;
+  username: string;
+  rol: string;
+  rol_vendedor_id: number;
+  territorio_id: number;
+  fecha_ingreso: string;
+  observaciones: string;
+  activo: boolean;
+  clientes_ids: string[];
+  plan_venta: {
+    tipo_plan_id: number;
+    nombre_plan: string;
+    fecha_inicio: string;
+    fecha_fin: string;
+    meta_ventas: number;
+    comision_base: number;
+    estructura_bonificaciones: {
+      [key: string]: number;
+    };
+    observaciones: string;
+    productos: {
+      producto_id: string;
+      meta_cantidad: number;
+      precio_unitario: number;
+    }[];
+    region_ids: number[];
+    zona_ids: number[];
+  };
+}
+
+export interface CrearVendedorResponse extends Vendedor {
+  generated_password: string | null;
+  clientes_con_vendedor_previo: unknown;
+  clientes_no_encontrados: unknown;
+  created_by_user_id: string | null;
+}
+
 export const vendedoresService = {
   /**
    * Obtiene el listado de vendedores
@@ -53,6 +95,34 @@ export const vendedoresService = {
       return data;
     } catch (error) {
       console.error('Error en obtenerVendedores:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Crea un nuevo vendedor
+   */
+  async crearVendedor(data: CrearVendedorRequest): Promise<CrearVendedorResponse> {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/vendedores/`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error al crear vendedor: ${response.status}`);
+      }
+
+      const resultado: CrearVendedorResponse = await response.json();
+      return resultado;
+    } catch (error) {
+      console.error('Error en crearVendedor:', error);
       throw error;
     }
   },

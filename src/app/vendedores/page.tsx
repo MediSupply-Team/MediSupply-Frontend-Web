@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect, Fragment } from 'react';
+import { useRouter } from 'next/navigation';
 import { vendedoresService, type Vendedor } from '@/services/vendedoresService';
 import { useNotifications } from '@/store/appStore';
 
 export default function VendedoresPage() {
+  const router = useRouter();
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -38,12 +40,7 @@ export default function VendedoresPage() {
   }, [page]);
 
   const handleAgregarVendedor = () => {
-    // TODO: Implementar funcionalidad
-    addNotification({
-      tipo: 'info',
-      titulo: 'Información',
-      mensaje: 'Funcionalidad en desarrollo',
-    });
+    router.push('/vendedores/nuevo');
   };
 
   const getRolLabel = (rol: string) => {
