@@ -22,7 +22,7 @@ export default function I18nDemoPage() {
     <div className="max-w-4xl mx-auto space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-2">
+        <h1 className="text-4xl font-bold text-[var(--text-primary)] mb-2">
           {t('common.appName')} - i18n Demo
         </h1>
         <p className="text-[var(--text-secondary)]">

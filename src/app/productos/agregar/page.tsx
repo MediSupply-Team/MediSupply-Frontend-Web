@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -7,10 +8,22 @@ import { useCreateProductoBackend } from '@/hooks/useProductos';
 import { useNotifications } from '@/store/appStore';
 import { productoSchema, type ProductoFormData } from '@/schemas/productoSchema';
 
+interface Bodega {
+  id: string;
+  nombre: string;
+  codigo: string;
+  tipo: string;
+  ciudad: string;
+  pais: string;
+  activo: boolean;
+}
+
 export default function AgregarProductoPage() {
   const router = useRouter();
   const { addNotification } = useNotifications();
   const createMutation = useCreateProductoBackend();
+  const [bodegas, setBodegas] = useState<Bodega[]>([]);
+  const [loadingBodegas, setLoadingBodegas] = useState(true);
 
   const {
     register,
@@ -40,6 +53,28 @@ export default function AgregarProductoPage() {
     }
   });
 
+  // Cargar bodegas al montar el componente
+  useEffect(() => {
+    const fetchBodegas = async () => {
+      try {
+        const response = await fetch('https://medisupply-backend.duckdns.org/venta/api/v1/bodegas?size=50');
+        if (!response.ok) throw new Error('Error al cargar bodegas');
+        const data = await response.json();
+        setBodegas(data.items || []);
+      } catch (error) {
+        console.error('Error cargando bodegas:', error);
+        addNotification({
+          tipo: 'error',
+          titulo: 'Error',
+          mensaje: 'No se pudieron cargar las bodegas',
+        });
+      } finally {
+        setLoadingBodegas(false);
+      }
+    };
+    fetchBodegas();
+  }, [addNotification]);
+
   const onSubmit = async (data: ProductoFormData) => {
     try {
       // Convertir undefined a 0 para los campos numéricos
@@ -51,7 +86,42 @@ export default function AgregarProductoPage() {
         precioVenta: data.precioVenta || 0,
       };
 
-      await createMutation.mutateAsync(processedData);
+      // 1. Crear el producto en el catálogo
+      const productoCreado = await createMutation.mutateAsync(processedData);
+
+      // 2. Si hay stock inicial, crear movimiento de inventario
+      if (processedData.stockInicial > 0) {
+        try {
+          // Encontrar la bodega seleccionada para obtener su pais
+          const bodegaSeleccionada = bodegas.find(b => b.id === data.almacen);
+          const timestamp = Date.now().toString().slice(-6);
+          
+          const movimientoPayload = {
+            producto_id: productoCreado.id,
+            bodega_id: data.almacen, // Ahora es el ID de la bodega
+            pais: bodegaSeleccionada?.pais || 'CO',
+            lote: `LOTE${timestamp}_${new Date().getFullYear()}`,
+            tipo_movimiento: 'INGRESO',
+            motivo: 'INVENTARIO_INICIAL',
+            cantidad: processedData.stockInicial,
+            fecha_vencimiento: data.fechaVencimiento || undefined,
+            usuario_id: 'SYSTEM',
+            referencia_documento: `INICIAL_${data.sku}`,
+            observaciones: `Stock inicial del producto ${data.nombre}`,
+          };
+
+          await fetch('https://medisupply-backend.duckdns.org/venta/api/v1/inventory/movements', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(movimientoPayload),
+          });
+        } catch (invError) {
+          console.error('Error al crear movimiento de inventario:', invError);
+          // No fallar la creación del producto si falla el movimiento
+        }
+      }
 
       addNotification({
         tipo: 'success',
@@ -310,7 +380,7 @@ export default function AgregarProductoPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label className="block mb-2 text-sm font-medium text-[var(--text-primary)]" htmlFor="almacen">
-                  Almacén *
+                  Bodega *
                 </label>
                 <select
                   {...register('almacen')}
@@ -318,12 +388,16 @@ export default function AgregarProductoPage() {
                     errors.almacen ? 'border-red-500' : 'border-[var(--border-color)]'
                   }`}
                   id="almacen"
+                  disabled={loadingBodegas}
                 >
-                  <option value="">Seleccione el almacén</option>
-                  <option value="Almacén Central">Almacén Central</option>
-                  <option value="Almacén Norte">Almacén Norte</option>
-                  <option value="Almacén Sur">Almacén Sur</option>
-                  <option value="Farmacia">Farmacia</option>
+                  <option value="">
+                    {loadingBodegas ? 'Cargando bodegas...' : 'Seleccione la bodega'}
+                  </option>
+                  {bodegas.filter(b => b.activo).map((bodega) => (
+                    <option key={bodega.id} value={bodega.id}>
+                      {bodega.nombre} - {bodega.ciudad} ({bodega.pais}) - {bodega.tipo}
+                    </option>
+                  ))}
                 </select>
                 {errors.almacen && (
                   <p className="text-red-500 text-xs mt-1">{errors.almacen.message}</p>

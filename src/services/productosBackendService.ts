@@ -159,7 +159,7 @@ class ProductosBackendService {
       stockCritico,
       requiereLote: true,
       requiereVencimiento: !!formulario.fechaVencimiento || formulario.categoria === 'Medicamentos',
-      proveedorId: 'PROV001', // Proveedor por defecto
+      proveedorId: uuidv4(), // Generar UUID válido para el proveedor
       bodegasIniciales: [
         {
           bodega_id: this.mapearAlmacen(formulario.almacen),

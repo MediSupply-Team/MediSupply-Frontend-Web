@@ -3,8 +3,8 @@
 import { useTranslations, useLocale } from 'next-intl';
 import { Locale, currencies, timezones, localeNames } from '@/i18n/config';
 
-export function useI18n() {
-  const t = useTranslations();
+export function useI18n(namespace?: string) {
+  const t = useTranslations(namespace);
   const locale = useLocale() as Locale;
 
   const formatCurrency = (amount: number) => {
