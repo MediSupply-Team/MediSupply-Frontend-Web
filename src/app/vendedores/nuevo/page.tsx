@@ -182,6 +182,23 @@ export default function NuevoVendedorPage() {
       setLoading(true);
       const response = await vendedoresService.crearVendedor(formData);
       
+      // Activar el usuario para que pueda loguearse desde otra app
+      try {
+        await vendedoresService.activarUsuarioVendedor(
+          response.email,
+          response.generated_password || '',
+          response.id
+        );
+      } catch (activationError) {
+        console.error('Error al activar usuario:', activationError);
+        // Continuar aunque falle la activación
+        addNotification({
+          tipo: 'warning',
+          titulo: 'Advertencia',
+          mensaje: 'Vendedor creado pero hubo un problema al activar el usuario',
+        });
+      }
+      
       // Guardar credenciales para mostrar en el modal
       setCredenciales({
         email: response.email,

@@ -126,4 +126,34 @@ export const vendedoresService = {
       throw error;
     }
   },
+
+  /**
+   * Activa el usuario para que pueda loguearse desde otra app
+   */
+  async activarUsuarioVendedor(email: string, password: string, vendedorId: string): Promise<void> {
+    try {
+      const response = await fetch(
+        'https://medisupply-backend.duckdns.org/venta/auth/register',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email,
+            password,
+            role_id: 5,
+            venta_id: vendedorId,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error al activar usuario: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Error en activarUsuarioVendedor:', error);
+      throw error;
+    }
+  },
 };
