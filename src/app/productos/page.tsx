@@ -28,11 +28,20 @@ export default function ProductosPage() {
     productoId: string;
     productoNombre: string;
     tipoMovimiento: 'INGRESO' | 'SALIDA';
+    bodegas?: Array<{
+      id: string;
+      codigo: string;
+      nombre: string;
+      ciudad: string;
+      pais: string;
+      cantidad: number;
+    }>;
   }>({
     isOpen: false,
     productoId: '',
     productoNombre: '',
     tipoMovimiento: 'INGRESO',
+    bodegas: [],
   });
 
   // Estado para el menú desplegable de acciones
@@ -76,6 +85,7 @@ export default function ProductosPage() {
       productoId: producto.id,
       productoNombre: producto.nombre,
       tipoMovimiento: tipo,
+      bodegas: producto.bodegas || [],
     });
     setMenuAbiertoId(null); // Cerrar el menú
   };
@@ -86,6 +96,7 @@ export default function ProductosPage() {
       productoId: '',
       productoNombre: '',
       tipoMovimiento: 'INGRESO',
+      bodegas: [],
     });
   };
 
@@ -489,6 +500,7 @@ export default function ProductosPage() {
         productoId={modalMovimiento.productoId}
         productoNombre={modalMovimiento.productoNombre}
         tipoMovimiento={modalMovimiento.tipoMovimiento}
+        bodegasProducto={modalMovimiento.bodegas}
         onSuccess={async () => {
           // Mostrar indicador de actualización
           setIsRefreshing(true);

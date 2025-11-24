@@ -80,7 +80,20 @@ export class MovimientosInventarioService {
           errorData = { message: errorText };
         }
         
-        throw new Error(errorData.message || errorData.detail || `Error ${response.status}: ${response.statusText}`);
+        // Manejar error de stock insuficiente con mensaje más claro
+        if (errorData.detail?.error === 'STOCK_INSUFICIENTE') {
+          const detail = errorData.detail;
+          throw new Error(
+            `Stock insuficiente en la bodega seleccionada.\n` +
+            `Stock actual: ${detail.saldo_actual}\n` +
+            `Cantidad solicitada: ${detail.cantidad_requerida}\n` +
+            `Faltante: ${detail.faltante}\n\n` +
+            `Nota: El stock mostrado puede estar en diferentes lotes. ` +
+            `Para ventas, el sistema busca stock en el lote específico que indicaste.`
+          );
+        }
+        
+        throw new Error(errorData.message || errorData.detail?.message || `Error ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
