@@ -155,16 +155,19 @@ class ProductosBackendListService {
   private convertirProductoBackendToUI(productoBackend: ProductoBackendResponse): Producto {
     const categoriaUI = this.mapearCategoriaBackendToUI(productoBackend.categoria);
     
+    // Manejar caso donde inventarioResumen puede ser null
+    const cantidadTotal = productoBackend.inventarioResumen?.cantidadTotal ?? 0;
+    
     return {
       id: productoBackend.id,
       nombre: productoBackend.nombre,
       sku: productoBackend.codigo,
       categoria: categoriaUI,
-      stock: productoBackend.inventarioResumen.cantidadTotal,
+      stock: cantidadTotal,
       unidadMedida: productoBackend.presentacion || 'unidad',
       ubicacion: 'Almacén Principal', // Placeholder por defecto
       ubicacionDetalle: 'Estante A-1', // Placeholder por defecto
-      estadoStock: this.determinarEstadoStock(productoBackend.inventarioResumen.cantidadTotal),
+      estadoStock: this.determinarEstadoStock(cantidadTotal),
       fechaVencimiento: this.generarFechaVencimientoDefault(), // Fecha por defecto
       icono: this.obtenerIconoPorCategoria(productoBackend.categoria),
       colorIcono: this.obtenerColorIcono(productoBackend.categoria),
