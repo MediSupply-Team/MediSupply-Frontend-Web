@@ -4,6 +4,15 @@ import type { FiltrosInventario, Producto, ProductosResponse } from '@/types';
 const BACKEND_BASE_URL = 'https://medisupply-backend.duckdns.org'; // Llamadas directas al backend
 
 // === TIPOS DEL BACKEND ===
+export interface BodegaInventario {
+  id: string;
+  codigo: string;
+  nombre: string;
+  ciudad: string;
+  pais: string;
+  cantidad: number;
+}
+
 export interface ProductoBackendResponse {
   categoria: string;
   codigo: string;
@@ -11,7 +20,8 @@ export interface ProductoBackendResponse {
   inventarioResumen: {
     cantidadTotal: number;
     paises: string[];
-  };
+    bodegas?: BodegaInventario[];
+  } | null;
   nombre: string;
   precioUnitario: number;
   presentacion: string;
@@ -35,7 +45,7 @@ class ProductosBackendListService {
   private baseUrl: string;
   private cacheProductos: ProductoBackendResponse[] | null = null;
   private cacheTimestamp: number = 0;
-  private cacheDurationMs = 2 * 60 * 1000; // 2 minutos
+  private cacheDurationMs = 0; // Deshabilitado: caché desactivado para siempre tener datos frescos
 
   constructor(baseUrl: string = BACKEND_BASE_URL) {
     this.baseUrl = baseUrl;
@@ -155,16 +165,20 @@ class ProductosBackendListService {
   private convertirProductoBackendToUI(productoBackend: ProductoBackendResponse): Producto {
     const categoriaUI = this.mapearCategoriaBackendToUI(productoBackend.categoria);
     
+    // Manejar caso donde inventarioResumen puede ser null
+    const cantidadTotal = productoBackend.inventarioResumen?.cantidadTotal ?? 0;
+    const bodegas = productoBackend.inventarioResumen?.bodegas ?? [];
+    
     return {
       id: productoBackend.id,
       nombre: productoBackend.nombre,
       sku: productoBackend.codigo,
       categoria: categoriaUI,
-      stock: productoBackend.inventarioResumen.cantidadTotal,
+      stock: cantidadTotal,
       unidadMedida: productoBackend.presentacion || 'unidad',
       ubicacion: 'Almacén Principal', // Placeholder por defecto
       ubicacionDetalle: 'Estante A-1', // Placeholder por defecto
-      estadoStock: this.determinarEstadoStock(productoBackend.inventarioResumen.cantidadTotal),
+      estadoStock: this.determinarEstadoStock(cantidadTotal),
       fechaVencimiento: this.generarFechaVencimientoDefault(), // Fecha por defecto
       icono: this.obtenerIconoPorCategoria(productoBackend.categoria),
       colorIcono: this.obtenerColorIcono(productoBackend.categoria),
@@ -172,6 +186,7 @@ class ProductosBackendListService {
       proveedor: 'Por Definir', // Placeholder
       lote: 'LOTE-2024-001', // Placeholder
       descripcion: productoBackend.requisitosAlmacenamiento || '',
+      bodegas: bodegas,
     };
   }
 

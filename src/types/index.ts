@@ -34,6 +34,16 @@ export interface Medicamento {
   fechaActualizacion: string;
 }
 
+// === TIPOS DE BODEGAS DE INVENTARIO ===
+export interface BodegaInventario {
+  id: string;
+  codigo: string;
+  nombre: string;
+  ciudad: string;
+  pais: string;
+  cantidad: number;
+}
+
 // === TIPOS DE PRODUCTOS ===
 export interface Producto {
   id: string;
@@ -54,6 +64,7 @@ export interface Producto {
   descripcion?: string;
   fechaCreacion?: string;
   fechaActualizacion?: string;
+  bodegas?: BodegaInventario[];
 }
 
 // === RESPUESTA DE PRODUCTOS ===

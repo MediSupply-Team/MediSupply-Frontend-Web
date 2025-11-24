@@ -28,11 +28,20 @@ export default function ProductosPage() {
     productoId: string;
     productoNombre: string;
     tipoMovimiento: 'INGRESO' | 'SALIDA';
+    bodegas?: Array<{
+      id: string;
+      codigo: string;
+      nombre: string;
+      ciudad: string;
+      pais: string;
+      cantidad: number;
+    }>;
   }>({
     isOpen: false,
     productoId: '',
     productoNombre: '',
     tipoMovimiento: 'INGRESO',
+    bodegas: [],
   });
 
   // Estado para el menú desplegable de acciones
@@ -76,6 +85,7 @@ export default function ProductosPage() {
       productoId: producto.id,
       productoNombre: producto.nombre,
       tipoMovimiento: tipo,
+      bodegas: producto.bodegas || [],
     });
     setMenuAbiertoId(null); // Cerrar el menú
   };
@@ -86,6 +96,7 @@ export default function ProductosPage() {
       productoId: '',
       productoNombre: '',
       tipoMovimiento: 'INGRESO',
+      bodegas: [],
     });
   };
 
@@ -130,6 +141,22 @@ export default function ProductosPage() {
       default:
         return estado;
     }
+  };
+
+  const copiarIdAlPortapapeles = (id: string, nombre: string) => {
+    navigator.clipboard.writeText(id).then(() => {
+      addNotification({
+        tipo: 'success',
+        titulo: 'ID copiado',
+        mensaje: `ID de "${nombre}" copiado al portapapeles`,
+      });
+    }).catch(() => {
+      addNotification({
+        tipo: 'error',
+        titulo: 'Error',
+        mensaje: 'No se pudo copiar el ID',
+      });
+    });
   };
 
   return (
@@ -346,17 +373,11 @@ export default function ProductosPage() {
                     <th className="px-6 py-4 text-sm font-semibold text-[var(--text-primary)]">
                       SKU
                     </th>
-                    <th className="px-6 py-4 text-sm font-semibold text-[var(--text-primary)]">
-                      Ubicación
-                    </th>
                     <th className="px-6 py-4 text-sm font-semibold text-[var(--text-primary)] text-right">
                       Stock
                     </th>
                     <th className="px-6 py-4 text-sm font-semibold text-[var(--text-primary)] text-center">
                       Estado
-                    </th>
-                    <th className="px-6 py-4 text-sm font-semibold text-[var(--text-primary)]">
-                      Vencimiento
                     </th>
                     <th className="px-6 py-4 text-sm font-semibold text-[var(--text-primary)] text-center">
                       Acciones
@@ -383,19 +404,19 @@ export default function ProductosPage() {
                             <p className="text-xs text-[var(--text-secondary)]">
                               Categoría: {producto.categoria}
                             </p>
+                            <button
+                              onClick={() => copiarIdAlPortapapeles(producto.id, producto.nombre)}
+                              className="flex items-center gap-1 text-xs text-[var(--primary-color)] hover:underline mt-1"
+                              title="Copiar ID del producto"
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>content_copy</span>
+                              <span>ID: {producto.id.slice(0, 8)}...</span>
+                            </button>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-[var(--text-secondary)]">
                         {producto.sku}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-[var(--text-primary)]">
-                          {producto.ubicacion}
-                        </div>
-                        <div className="text-xs text-[var(--text-secondary)]">
-                          {producto.ubicacionDetalle}
-                        </div>
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="text-sm font-semibold text-[var(--text-primary)]">
@@ -409,9 +430,6 @@ export default function ProductosPage() {
                         <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${getEstadoClase(producto.estadoStock)}`}>
                           {getEstadoTexto(producto.estadoStock)}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-[var(--text-secondary)]">
-                        {producto.fechaVencimiento || '-'}
                       </td>
                       <td className="px-6 py-4 text-center">
                         <div className="relative menu-acciones">
@@ -482,6 +500,7 @@ export default function ProductosPage() {
         productoId={modalMovimiento.productoId}
         productoNombre={modalMovimiento.productoNombre}
         tipoMovimiento={modalMovimiento.tipoMovimiento}
+        bodegasProducto={modalMovimiento.bodegas}
         onSuccess={async () => {
           // Mostrar indicador de actualización
           setIsRefreshing(true);

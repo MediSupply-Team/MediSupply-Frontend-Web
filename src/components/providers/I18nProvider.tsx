@@ -10,9 +10,24 @@ interface I18nProviderProps {
   messages: AbstractIntlMessages;
 }
 
+const timezones: Record<string, string> = {
+  'es-CO': 'America/Bogota',
+  'es-MX': 'America/Mexico_City',
+  'es-AR': 'America/Argentina/Buenos_Aires',
+  'es-PE': 'America/Lima',
+  'es-CL': 'America/Santiago',
+  'en-US': 'America/New_York',
+  'en-GB': 'Europe/London',
+};
+
 export default function I18nProvider({ children, locale, messages }: I18nProviderProps) {
   return (
-    <NextIntlClientProvider locale={locale} messages={messages}>
+    <NextIntlClientProvider 
+      locale={locale} 
+      messages={messages}
+      timeZone={timezones[locale] || 'America/Bogota'}
+      now={new Date()}
+    >
       {children}
     </NextIntlClientProvider>
   );
